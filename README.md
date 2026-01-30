@@ -24,6 +24,9 @@ We're going to create a <product>, build the brand target profile following the 
 
 2. Product Features
 
+> [!NOTE]  
+> Everything after this is just copy/paste... GLHF.
+
 ```
 Okay let's talk features, let's list all of the potential project features that would be amazing for a consumer based following the attached image?
 ```
