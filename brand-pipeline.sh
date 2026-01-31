@@ -239,9 +239,11 @@ echo ""
 
 # Step 2: Product Features
 echo "Step 2/9: Defining Product Features..."
-STEP2_OUTPUT=$(claude -p "$(cat <<EOF
+STEP2_OUTPUT=$(claude -p "$(cat <<'EOF'
 Context from previous step:
-${STEP1_OUTPUT}
+EOF
+echo "${STEP1_OUTPUT}"
+cat <<'EOF'
 
 Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
@@ -254,9 +256,11 @@ echo ""
 
 # Step 3: Features to Benefits
 echo "Step 3/9: Converting Features to Benefits..."
-STEP3_OUTPUT=$(claude -p "$(cat <<EOF
+STEP3_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP2_OUTPUT}
+EOF
+echo "${STEP2_OUTPUT}"
+cat <<'EOF'
 
 Next, turn our features into benefits following the framework in @instructions/3.png
 
@@ -269,9 +273,11 @@ echo ""
 
 # Step 4: Winning Zone
 echo "Step 4/9: Mapping Winning Zone..."
-STEP4_OUTPUT=$(claude -p "$(cat <<EOF
+STEP4_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP3_OUTPUT}
+EOF
+echo "${STEP3_OUTPUT}"
+cat <<'EOF'
 
 Our next step is to map out our winning zone following the framework in @instructions/4.png
 
@@ -284,13 +290,15 @@ echo ""
 
 # Step 5: Brand Persona
 echo "Step 5/9: Defining Brand Persona..."
-STEP5_OUTPUT=$(claude -p "$(cat <<EOF
+STEP5_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP4_OUTPUT}
+EOF
+echo "${STEP4_OUTPUT}"
+cat <<'EOF'
 
 Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
-Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.
+Consider brand archetypes e.g., Hero, Sage, Explorer, Creator, etc. and explain why these personas align with our positioning.
 EOF
 )")
 
@@ -299,9 +307,11 @@ echo ""
 
 # Step 6: Brand Guidelines
 echo "Step 6/9: Creating Brand Guidelines..."
-STEP6_OUTPUT=$(claude -p "$(cat <<EOF
+STEP6_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP5_OUTPUT}
+EOF
+echo "${STEP5_OUTPUT}"
+cat <<'EOF'
 
 Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
@@ -316,9 +326,11 @@ echo ""
 
 # Step 7: Website Design Prompt
 echo "Step 7/9: Generating Website Design Prompt..."
-STEP7_OUTPUT=$(claude -p "$(cat <<EOF
+STEP7_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP6_OUTPUT}
+EOF
+echo "${STEP6_OUTPUT}"
+cat <<'EOF'
 
 Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
@@ -339,9 +351,11 @@ echo ""
 
 # Step 8: Build Site
 echo "Step 8/9: Building High Fidelity Website..."
-STEP8_OUTPUT=$(claude -p "$(cat <<EOF
+STEP8_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP7_OUTPUT}
+EOF
+echo "${STEP7_OUTPUT}"
+cat <<'EOF'
 
 Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
 
@@ -354,9 +368,11 @@ echo ""
 
 # Step 9: Video Marketing Prompt
 echo "Step 9/9: Creating Video Marketing Prompts..."
-STEP9_OUTPUT=$(claude -p "$(cat <<EOF
+STEP9_OUTPUT=$(claude -p "$(cat <<'EOF'
 Previous context:
-${STEP8_OUTPUT}
+EOF
+echo "${STEP8_OUTPUT}"
+cat <<'EOF'
 
 Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
