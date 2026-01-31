@@ -320,47 +320,101 @@ CSS_EOF
 fi
 
 # Collect user input for brand development
-echo "💭 Brand Vision"
-echo "════════════════════════════════════════════════════════════════"
-echo ""
-echo "What do you want to build? Describe your product/service idea."
-echo ""
-echo "You can include:"
-echo "  - Product description"
-echo "  - Reference websites (URLs)"
-echo "  - Target audience"
-echo "  - Key differentiators"
-echo "  - Any other relevant details"
-echo ""
-echo "Enter your vision below (press Enter on an empty line when finished):"
-echo "────────────────────────────────────────────────────────────────"
-echo ""
+VISION_FILE="${ARTIFACTS_DIR}/user-vision.txt"
 
-# Read multi-line input until empty line
-USER_VISION=""
-while IFS= read -r line; do
-    # Break on empty line
-    if [[ -z "$line" ]]; then
-        break
-    fi
-    # Append line to vision
-    if [[ -z "$USER_VISION" ]]; then
-        USER_VISION="$line"
-    else
-        USER_VISION="${USER_VISION}"$'\n'"${line}"
-    fi
-done
-
-if [[ -z "$USER_VISION" ]]; then
+# Check if vision already exists (from previous run)
+if [ -f "$VISION_FILE" ] && [ "$RESUME_FROM" -gt 0 ]; then
+    echo "💭 Brand Vision"
+    echo "════════════════════════════════════════════════════════════════"
     echo ""
-    echo "❌ No vision provided. Exiting..."
-    exit 1
-fi
+    echo "✓ Found existing vision from previous run:"
+    echo ""
+    USER_VISION=$(cat "$VISION_FILE")
+    echo "$USER_VISION"
+    echo ""
+    echo "────────────────────────────────────────────────────────────────"
+    read -p "Use this vision? (y/n, default: y): " USE_EXISTING
+    USE_EXISTING=${USE_EXISTING:-y}
+    echo ""
 
-echo ""
-echo "────────────────────────────────────────────────────────────────"
-echo "✓ Vision captured! Starting brand development..."
-echo ""
+    if [[ "$USE_EXISTING" != "y" ]]; then
+        # User wants to enter new vision
+        echo "Enter your new vision below (press Enter on an empty line when finished):"
+        echo "────────────────────────────────────────────────────────────────"
+        echo ""
+
+        USER_VISION=""
+        while IFS= read -r line; do
+            if [[ -z "$line" ]]; then
+                break
+            fi
+            if [[ -z "$USER_VISION" ]]; then
+                USER_VISION="$line"
+            else
+                USER_VISION="${USER_VISION}"$'\n'"${line}"
+            fi
+        done
+
+        if [[ -z "$USER_VISION" ]]; then
+            echo ""
+            echo "❌ No vision provided. Exiting..."
+            exit 1
+        fi
+
+        # Save new vision
+        echo "$USER_VISION" > "$VISION_FILE"
+        echo ""
+        echo "────────────────────────────────────────────────────────────────"
+        echo "✓ New vision captured and saved!"
+        echo ""
+    fi
+else
+    # First time or no existing vision
+    echo "💭 Brand Vision"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "What do you want to build? Describe your product/service idea."
+    echo ""
+    echo "You can include:"
+    echo "  - Product description"
+    echo "  - Reference websites (URLs)"
+    echo "  - Target audience"
+    echo "  - Key differentiators"
+    echo "  - Any other relevant details"
+    echo ""
+    echo "Enter your vision below (press Enter on an empty line when finished):"
+    echo "────────────────────────────────────────────────────────────────"
+    echo ""
+
+    # Read multi-line input until empty line
+    USER_VISION=""
+    while IFS= read -r line; do
+        # Break on empty line
+        if [[ -z "$line" ]]; then
+            break
+        fi
+        # Append line to vision
+        if [[ -z "$USER_VISION" ]]; then
+            USER_VISION="$line"
+        else
+            USER_VISION="${USER_VISION}"$'\n'"${line}"
+        fi
+    done
+
+    if [[ -z "$USER_VISION" ]]; then
+        echo ""
+        echo "❌ No vision provided. Exiting..."
+        exit 1
+    fi
+
+    # Save vision for future resume
+    echo "$USER_VISION" > "$VISION_FILE"
+
+    echo ""
+    echo "────────────────────────────────────────────────────────────────"
+    echo "✓ Vision captured and saved! Starting brand development..."
+    echo ""
+fi
 
 # Step 1: Target Profile
 if should_run_step 1; then
@@ -519,20 +573,22 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
+    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a HIGHLY DETAILED, comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
-    See @instructions/7.md for the framework example, but don't use it exactly. Follow the brand guidelines we created.
+CRITICAL: See @instructions/7.md for the framework example structure. Use it as inspiration for the level of detail and comprehensiveness, but customize the content to match our specific brand guidelines. DO NOT simplify or shorten the prompt - maintain or exceed the same level of detail as the example.
 
-Include:
-- How to Use This
-- Full Prompt (Copy This First)
-- Section-by-Section Refinement Prompts
-- Style Refinement Prompts
-- Alternative Hero Prompts
-- Component Prompts for Remixing
-- Support for light/dark mode
-- Final Checklist Prompt
-- Notes for Best Results")
+The output should be a complete, production-ready design prompt that includes:
+- How to Use This (with clear instructions)
+- Full Prompt (Copy This First) - this should be extremely detailed with specific design elements, animations, interactions, and visual specifications
+- Section-by-Section Refinement Prompts (detailed prompts for each landing page section)
+- Style Refinement Prompts (typography, colors, spacing, animations)
+- Alternative Hero Prompts (multiple variations)
+- Component Prompts for Remixing (reusable component specifications)
+- Support for light/dark mode (detailed theme specifications)
+- Final Checklist Prompt (comprehensive quality checklist)
+- Notes for Best Results (implementation tips and best practices)
+
+Follow the brand guidelines we created and ensure every section is thoroughly detailed.")
 
     log_tokens "7" "website-design-prompt" "$STEP7_OUTPUT"
     save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
@@ -548,18 +604,20 @@ fi
 # Step 8: Build Site
 if should_run_step 8; then
     echo "Step 8/10: Building High Fidelity Website..."
-    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the design prompt from the previous step as your guide.
+    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the FULL, DETAILED design prompt from Step 7 as your comprehensive guide - do not simplify or skip any sections.
 
-IMPORTANT:
+CRITICAL INSTRUCTIONS:
+- Reference the complete Step 7 website design prompt for all design specifications
 - Work in the website/ directory (a Next.js project with shadcn/ui)
 - Put all brand assets (logos, images, icons, etc.) in assets/ directory at the project root
 - Actually write/edit the code files - don't just describe what to do
-- Implement all sections from the design prompt systematically
+- Implement ALL sections from the detailed design prompt systematically
 - Use the Read, Edit, and Write tools to modify files in website/
 - Follow the brand guidelines we created
-- Create a high-fidelity implementation, not a prototype
+- Implement all animations, interactions, and visual details specified in the design prompt
+- Create a high-fidelity, production-quality implementation, not a prototype
 
-Start by reading the existing website structure, then implement each section of the landing page.")
+Start by reading the existing website structure, then implement each section of the landing page according to the detailed specifications from Step 7.")
 
     log_tokens "8" "build-site" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
@@ -713,6 +771,9 @@ if [ -d "assets" ]; then
 fi
 echo ""
 echo "📝 Step Artifacts:"
+if [ -f "${ARTIFACTS_DIR}/user-vision.txt" ]; then
+    ls -lh ${ARTIFACTS_DIR}/user-vision.txt | awk '{print "  - "$9" ("$5") [saved vision]"}'
+fi
 ls -lh ${ARTIFACTS_DIR}/*.md 2>/dev/null | awk '{print "  - "$9" ("$5")"}'
 
 # Display token usage summary
