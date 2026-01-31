@@ -8,6 +8,36 @@ set -e  # Exit on error
 echo "🎨 Starting Brand Development Pipeline..."
 echo ""
 
+# Create artifacts directory
+ARTIFACTS_DIR="artifacts"
+mkdir -p "$ARTIFACTS_DIR"
+echo "📁 Created artifacts directory: $ARTIFACTS_DIR"
+echo ""
+
+# Build prompt text with previous context and a heredoc body.
+build_prompt() {
+    local prev="$1"
+    printf 'Previous context:\n'
+    printf '%s\n' "$prev"
+    printf '\n'
+    cat
+}
+
+# Save step output to markdown file
+save_artifact() {
+    local step_num="$1"
+    local step_name="$2"
+    local content="$3"
+    local filename="${ARTIFACTS_DIR}/step${step_num}-${step_name}.md"
+
+    cat > "$filename" <<EOF
+# Step ${step_num}: ${step_name}
+
+${content}
+EOF
+    echo "💾 Saved: $filename"
+}
+
 # Check for Node.js and npm
 echo "🔍 Checking prerequisites..."
 
@@ -234,85 +264,65 @@ Create a comprehensive target profile based on the user's vision above.
 EOF
 )")
 
+save_artifact "1" "target-profile" "$STEP1_OUTPUT"
 echo "✓ Step 1 complete"
 echo ""
 
 # Step 2: Product Features
 echo "Step 2/9: Defining Product Features..."
-STEP2_OUTPUT=$(claude -p "$(cat <<'EOF'
-Context from previous step:
-EOF
-echo "${STEP1_OUTPUT}"
-cat <<'EOF'
-
+STEP2_OUTPUT=$(claude -p "$(build_prompt "$STEP1_OUTPUT" <<'EOF'
 Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.
 EOF
 )")
 
+save_artifact "2" "product-features" "$STEP2_OUTPUT"
 echo "✓ Step 2 complete"
 echo ""
 
 # Step 3: Features to Benefits
 echo "Step 3/9: Converting Features to Benefits..."
-STEP3_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP2_OUTPUT}"
-cat <<'EOF'
-
+STEP3_OUTPUT=$(claude -p "$(build_prompt "$STEP2_OUTPUT" <<'EOF'
 Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.
 EOF
 )")
 
+save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
 echo "✓ Step 3 complete"
 echo ""
 
 # Step 4: Winning Zone
 echo "Step 4/9: Mapping Winning Zone..."
-STEP4_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP3_OUTPUT}"
-cat <<'EOF'
-
+STEP4_OUTPUT=$(claude -p "$(build_prompt "$STEP3_OUTPUT" <<'EOF'
 Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?
 EOF
 )")
 
+save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
 echo "✓ Step 4 complete"
 echo ""
 
 # Step 5: Brand Persona
 echo "Step 5/9: Defining Brand Persona..."
-STEP5_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP4_OUTPUT}"
-cat <<'EOF'
-
+STEP5_OUTPUT=$(claude -p "$(build_prompt "$STEP4_OUTPUT" <<'EOF'
 Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
-Consider brand archetypes e.g., Hero, Sage, Explorer, Creator, etc. and explain why these personas align with our positioning.
+Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.
 EOF
 )")
 
+save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
 echo "✓ Step 5 complete"
 echo ""
 
 # Step 6: Brand Guidelines
 echo "Step 6/9: Creating Brand Guidelines..."
-STEP6_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP5_OUTPUT}"
-cat <<'EOF'
-
+STEP6_OUTPUT=$(claude -p "$(build_prompt "$STEP5_OUTPUT" <<'EOF'
 Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
@@ -321,17 +331,28 @@ Translate this into comprehensive brand guidelines, including:
 EOF
 )")
 
+save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
+
+# Generate PDF for brand guidelines
+echo "📄 Generating PDF for brand guidelines..."
+if command -v pandoc &> /dev/null; then
+    pandoc "${ARTIFACTS_DIR}/step6-brand-guidelines.md" \
+        -o "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" \
+        --pdf-engine=xelatex \
+        -V geometry:margin=1in \
+        -V fontsize=12pt \
+        --toc \
+        2>/dev/null && echo "✓ PDF generated: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" || echo "⚠️  PDF generation failed, markdown saved"
+else
+    echo "⚠️  pandoc not found, skipping PDF generation (markdown saved)"
+fi
+
 echo "✓ Step 6 complete"
 echo ""
 
 # Step 7: Website Design Prompt
 echo "Step 7/9: Generating Website Design Prompt..."
-STEP7_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP6_OUTPUT}"
-cat <<'EOF'
-
+STEP7_OUTPUT=$(claude -p "$(build_prompt "$STEP6_OUTPUT" <<'EOF'
 Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
 Include:
@@ -346,34 +367,26 @@ Include:
 EOF
 )")
 
+save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
 echo "✓ Step 7 complete"
 echo ""
 
 # Step 8: Build Site
 echo "Step 8/9: Building High Fidelity Website..."
-STEP8_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP7_OUTPUT}"
-cat <<'EOF'
-
+STEP8_OUTPUT=$(claude -p "$(build_prompt "$STEP7_OUTPUT" <<'EOF'
 Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
 
 Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code.
 EOF
 )")
 
+save_artifact "8" "build-site" "$STEP8_OUTPUT"
 echo "✓ Step 8 complete"
 echo ""
 
 # Step 9: Video Marketing Prompt
 echo "Step 9/9: Creating Video Marketing Prompts..."
-STEP9_OUTPUT=$(claude -p "$(cat <<'EOF'
-Previous context:
-EOF
-echo "${STEP8_OUTPUT}"
-cat <<'EOF'
-
+STEP9_OUTPUT=$(claude -p "$(build_prompt "$STEP8_OUTPUT" <<'EOF'
 Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
@@ -390,6 +403,7 @@ Create detailed prompts for:
 EOF
 )")
 
+save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
 echo "✓ Step 9 complete"
 echo ""
 
@@ -443,4 +457,13 @@ ${STEP9_OUTPUT}
 EOF
 
 echo "✅ Brand development pipeline complete!"
-echo "📄 Full output saved to: brand-output.md"
+echo ""
+echo "📄 Outputs saved:"
+echo "  - Consolidated: brand-output.md"
+echo "  - Individual steps: ${ARTIFACTS_DIR}/"
+echo "  - Brand Guidelines PDF: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf (if pandoc available)"
+echo ""
+ls -lh ${ARTIFACTS_DIR}/*.md 2>/dev/null | awk '{print "  - "$9" ("$5")"}'
+if [ -f "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" ]; then
+    ls -lh "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" | awk '{print "  - "$9" ("$5")"}'
+fi
