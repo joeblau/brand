@@ -59,6 +59,7 @@ echo ""
 echo "Please visit https://ui.shadcn.com/create to configure your project"
 echo ""
 echo "Once you've configured your preferences, copy the npx command and paste it below."
+echo "The project will be created in the 'website/' folder."
 echo ""
 echo "Example:"
 echo "npx shadcn@latest create --preset \"https://ui.shadcn.com/init?base=radix&style=vega&baseColor=neutral&theme=neutral&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=default&template=next&rtl=false\" --template next"
@@ -73,11 +74,17 @@ if [[ -z "$NPX_COMMAND" ]]; then
 fi
 
 echo ""
-echo "📦 Creating your shadcn project..."
+echo "📦 Creating your shadcn project in website/ folder..."
 echo ""
 
-# Execute the npx command
-eval "$NPX_COMMAND"
+# Remove existing website folder if it exists
+if [ -d "website" ]; then
+    echo "⚠️  website/ folder already exists. Removing..."
+    rm -rf website
+fi
+
+# Execute the npx command with website as the project name
+eval "$NPX_COMMAND website"
 
 if [ $? -ne 0 ]; then
     echo "❌ Project creation failed. Please check the command and try again."
@@ -85,7 +92,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "✓ Project created successfully!"
+echo "✓ Project created successfully in website/ folder!"
 echo ""
 
 # Step 1: Target Profile
