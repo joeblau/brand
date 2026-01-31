@@ -92,87 +92,84 @@ fi
 echo ""
 
 # Create shadcn project
-echo "🚀 Project Setup"
-echo "════════════════════════════════════════════════════════════════"
-echo ""
-echo "Please visit https://ui.shadcn.com/create to configure your project"
-echo ""
-echo "Once you've configured your preferences, copy the npx command and paste it below."
-echo "The project will be created in the 'website/' folder."
-echo ""
-echo "Example:"
-echo "npx shadcn@latest create --preset \"https://ui.shadcn.com/init?base=radix&style=vega&baseColor=neutral&theme=neutral&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=default&template=next&rtl=false\" --template next"
-echo ""
-echo "════════════════════════════════════════════════════════════════"
-echo ""
-read -p "Paste your npx command here: " NPX_COMMAND
-
-if [[ -z "$NPX_COMMAND" ]]; then
-    echo "❌ No command provided. Exiting..."
-    exit 1
-fi
-
-echo ""
-echo "📦 Creating your shadcn project in website/ folder..."
-echo ""
-
-# Remove existing website folder if it exists
 if [ -d "website" ]; then
-    echo "⚠️  website/ folder already exists. Removing..."
-    rm -rf website
+    echo "✓ website/ folder already exists, skipping creation"
+    echo ""
+else
+    echo "🚀 Project Setup"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Please visit https://ui.shadcn.com/create to configure your project"
+    echo ""
+    echo "Once you've configured your preferences, copy the npx command and paste it below."
+    echo "The project will be created in the 'website/' folder."
+    echo ""
+    echo "Example:"
+    echo "npx shadcn@latest create --preset \"https://ui.shadcn.com/init?base=radix&style=vega&baseColor=neutral&theme=neutral&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=default&template=next&rtl=false\" --template next"
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    read -p "Paste your npx command here: " NPX_COMMAND
+
+    if [[ -z "$NPX_COMMAND" ]]; then
+        echo "❌ No command provided. Exiting..."
+        exit 1
+    fi
+
+    echo ""
+    echo "📦 Creating your shadcn project in website/ folder..."
+    echo ""
+
+    # Execute the npx command with website as the project name
+    eval "$NPX_COMMAND website"
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Project creation failed. Please check the command and try again."
+        exit 1
+    fi
+
+    echo ""
+    echo "✓ Project created successfully in website/ folder!"
+    echo ""
 fi
-
-# Execute the npx command with website as the project name
-eval "$NPX_COMMAND website"
-
-if [ $? -ne 0 ]; then
-    echo "❌ Project creation failed. Please check the command and try again."
-    exit 1
-fi
-
-echo ""
-echo "✓ Project created successfully in website/ folder!"
-echo ""
 
 # Create Remotion video project
-echo "🎬 Video Project Setup"
-echo "════════════════════════════════════════════════════════════════"
-echo ""
-echo "📦 Creating Remotion video project in video/ folder..."
-echo ""
-
-# Remove existing video folder if it exists
 if [ -d "video" ]; then
-    echo "⚠️  video/ folder already exists. Removing..."
-    rm -rf video
-fi
+    echo "✓ video/ folder already exists, skipping creation"
+    echo ""
+else
+    echo "🎬 Video Project Setup"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "📦 Creating Remotion video project in video/ folder..."
+    echo ""
 
-# Create blank Remotion project without git
-npx create-video@latest video --blank || {
-    echo "❌ Remotion project creation failed."
-    exit 1
-}
+    # Create blank Remotion project without git
+    npx create-video@latest video --blank || {
+        echo "❌ Remotion project creation failed."
+        exit 1
+    }
 
-# Navigate to video folder and set up additional tools
-cd video || {
-    echo "❌ Failed to enter video directory"
-    exit 1
-}
+    # Navigate to video folder and set up additional tools
+    cd video || {
+        echo "❌ Failed to enter video directory"
+        exit 1
+    }
 
-# Install Tailwind CSS
-echo "📦 Installing Tailwind CSS..."
-npm install -D tailwindcss postcss autoprefixer || {
-    echo "❌ Failed to install Tailwind CSS"
-    cd ..
-    exit 1
-}
+    # Install Tailwind CSS
+    echo "📦 Installing Tailwind CSS..."
+    npm install -D tailwindcss postcss autoprefixer || {
+        echo "❌ Failed to install Tailwind CSS"
+        cd ..
+        exit 1
+    }
 
-npx tailwindcss init -p || {
-    echo "⚠️  Tailwind init failed, but continuing..."
-}
+    npx tailwindcss init -p || {
+        echo "⚠️  Tailwind init failed, but continuing..."
+    }
 
-# Create Tailwind config
-cat > tailwind.config.js <<'TAILWIND_EOF'
+    # Create Tailwind config
+    cat > tailwind.config.js <<'TAILWIND_EOF'
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -185,35 +182,36 @@ module.exports = {
 }
 TAILWIND_EOF
 
-# Add Tailwind directives to a global CSS file
-mkdir -p src/styles
-cat > src/styles/globals.css <<'CSS_EOF'
+    # Add Tailwind directives to a global CSS file
+    mkdir -p src/styles
+    cat > src/styles/globals.css <<'CSS_EOF'
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 CSS_EOF
 
-# Create .clawdbot directory and symlink agent skills
-echo "🔗 Setting up agent skills..."
-mkdir -p .clawdbot
+    # Create .clawdbot directory and symlink agent skills
+    echo "🔗 Setting up agent skills..."
+    mkdir -p .clawdbot
 
-# Symlink recommended agent skills from parent or home directory
-# Users can customize this based on their agent skills location
-if [ -d "$HOME/.clawdbot/skills" ]; then
-    ln -s "$HOME/.clawdbot/skills" .clawdbot/skills
-    echo "✓ Symlinked agent skills from ~/.clawdbot/skills"
-else
-    echo "⚠️  No agent skills found at ~/.clawdbot/skills"
-    echo "   You can manually create symlinks later"
+    # Symlink recommended agent skills from parent or home directory
+    # Users can customize this based on their agent skills location
+    if [ -d "$HOME/.clawdbot/skills" ]; then
+        ln -s "$HOME/.clawdbot/skills" .clawdbot/skills
+        echo "✓ Symlinked agent skills from ~/.clawdbot/skills"
+    else
+        echo "⚠️  No agent skills found at ~/.clawdbot/skills"
+        echo "   You can manually create symlinks later"
+    fi
+
+    cd ..
+
+    echo ""
+    echo "✓ Remotion project created successfully in video/ folder!"
+    echo "✓ Tailwind CSS configured"
+    echo "✓ Agent skills setup complete"
+    echo ""
 fi
-
-cd ..
-
-echo ""
-echo "✓ Remotion project created successfully in video/ folder!"
-echo "✓ Tailwind CSS configured"
-echo "✓ Agent skills setup complete"
-echo ""
 
 # Collect user input for brand development
 echo "💭 Brand Vision"
