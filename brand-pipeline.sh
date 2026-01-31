@@ -353,7 +353,7 @@ echo ""
 # Step 1: Target Profile
 if should_run_step 1; then
     echo "Step 1/10: Creating Target Profile..."
-    STEP1_OUTPUT=$(claude -p --default-mode bypassPermissions --model claude-opus-4-5-20251101 "$(cat <<EOF
+    STEP1_OUTPUT=$(claude -p --permission-mode bypassPermissions --model claude-opus-4-5-20251101 "$(cat <<EOF
 We're going to build the following product/service. Create a brand target profile following the brand framework shown in @instructions/1.png
 
 USER VISION:
@@ -383,7 +383,7 @@ fi
 # Step 2: Product Features
 if should_run_step 2; then
     echo "Step 2/10: Defining Product Features..."
-    STEP2_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    STEP2_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.")
 
@@ -401,7 +401,7 @@ fi
 # Step 3: Features to Benefits
 if should_run_step 3; then
     echo "Step 3/10: Converting Features to Benefits..."
-    STEP3_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Next, turn our features into benefits following the framework in @instructions/3.png
+    STEP3_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.")
 
@@ -419,7 +419,7 @@ fi
 # Step 4: Winning Zone
 if should_run_step 4; then
     echo "Step 4/10: Mapping Winning Zone..."
-    STEP4_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Our next step is to map out our winning zone following the framework in @instructions/4.png
+    STEP4_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?")
 
@@ -437,7 +437,7 @@ fi
 # Step 5: Brand Persona
 if should_run_step 5; then
     echo "Step 5/10: Defining Brand Persona..."
-    STEP5_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    STEP5_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
 Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.")
 
@@ -455,7 +455,7 @@ fi
 # Step 6: Brand Guidelines
 if should_run_step 6; then
     echo "Step 6/10: Creating Brand Guidelines..."
-    STEP6_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Translate this into comprehensive brand guidelines, including:
+    STEP6_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
@@ -507,7 +507,7 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
+    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
 Include:
 - How to Use This
@@ -533,7 +533,7 @@ fi
 # Step 8: Build Site
 if should_run_step 8; then
     echo "Step 8/10: Building High Fidelity Website..."
-    STEP8_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the design prompt from the previous step as your guide.
+    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the design prompt from the previous step as your guide.
 
 IMPORTANT:
 - Work in the website/ directory (a Next.js project with shadcn/ui)
@@ -560,7 +560,7 @@ fi
 # Step 9: Video Marketing Prompt
 if should_run_step 9; then
     echo "Step 9/10: Creating Video Marketing Prompts..."
-    STEP9_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    STEP9_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
@@ -588,7 +588,7 @@ fi
 # Step 10: Build Video
 if should_run_step 10; then
     echo "Step 10/10: Building High Quality Brand Video..."
-    STEP10_OUTPUT=$(claude -p --default-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory. Use the video prompts from the previous step as your guide.
+    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory. Use the video prompts from the previous step as your guide.
 
 IMPORTANT:
 - Work in the video/ directory (a Remotion project with Tailwind CSS)
