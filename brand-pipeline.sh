@@ -115,8 +115,10 @@ The following outputs were generated in a previous session. Use this context to 
 
     # Include user vision
     if [ -f "$VISION_FILE" ]; then
+        local vision_content
+        vision_content=$(cat "$VISION_FILE")
         context="${context}## USER VISION
-$(cat "$VISION_FILE")
+${vision_content}
 
 ---
 
@@ -488,7 +490,7 @@ if [ -f "$VISION_FILE" ] && [ "$RESUME_FROM" -gt 0 ]; then
         fi
 
         # Save new vision
-        echo "$USER_VISION" > "$VISION_FILE"
+        printf '%s\n' "$USER_VISION" > "$VISION_FILE"
         echo ""
         echo "────────────────────────────────────────────────────────────────"
         echo "✓ New vision captured and saved!"
@@ -534,7 +536,7 @@ else
     fi
 
     # Save vision for future resume
-    echo "$USER_VISION" > "$VISION_FILE"
+    printf '%s\n' "$USER_VISION" > "$VISION_FILE"
 
     echo ""
     echo "────────────────────────────────────────────────────────────────"
