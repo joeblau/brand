@@ -11,13 +11,50 @@ echo ""
 # Create artifacts directory
 ARTIFACTS_DIR="artifacts"
 mkdir -p "$ARTIFACTS_DIR"
-echo "📁 Created artifacts directory: $ARTIFACTS_DIR"
+
+# Check for existing artifacts and offer resume
+RESUME_FROM=0
+if ls ${ARTIFACTS_DIR}/step*.md 1> /dev/null 2>&1; then
+    echo "📋 Found existing artifacts:"
+    ls -1 ${ARTIFACTS_DIR}/step*.md | while read file; do
+        echo "  ✓ $(basename $file)"
+    done
+    echo ""
+
+    # Find the last completed step
+    LAST_STEP=$(ls -1 ${ARTIFACTS_DIR}/step*.md 2>/dev/null | sed 's/.*step\([0-9]\).*/\1/' | sort -n | tail -1)
+
+    if [ -n "$LAST_STEP" ]; then
+        echo "Last completed step: $LAST_STEP"
+        read -p "Resume from step $((LAST_STEP + 1))? (y/n, default: y): " RESUME_CHOICE
+        RESUME_CHOICE=${RESUME_CHOICE:-y}
+
+        if [[ "$RESUME_CHOICE" == "y" ]]; then
+            RESUME_FROM=$LAST_STEP
+            echo "✓ Resuming from step $((RESUME_FROM + 1))"
+            echo ""
+        else
+            echo "Starting from beginning (existing artifacts will be overwritten)"
+            echo ""
+        fi
+    fi
+else
+    echo "📁 Created artifacts directory: $ARTIFACTS_DIR"
+fi
 
 # Initialize token tracking log
 TOKEN_LOG="${ARTIFACTS_DIR}/token-usage.log"
-echo "Token Usage Log - $(date)" > "$TOKEN_LOG"
-echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
-echo "" >> "$TOKEN_LOG"
+if [ "$RESUME_FROM" -eq 0 ]; then
+    echo "Token Usage Log - $(date)" > "$TOKEN_LOG"
+    echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+    echo "" >> "$TOKEN_LOG"
+else
+    echo "" >> "$TOKEN_LOG"
+    echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+    echo "Resumed session - $(date)" >> "$TOKEN_LOG"
+    echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+    echo "" >> "$TOKEN_LOG"
+fi
 
 echo ""
 
@@ -43,6 +80,27 @@ save_artifact() {
 ${content}
 EOF
     echo "💾 Saved: $filename"
+}
+
+# Load artifact from file
+load_artifact() {
+    local step_num="$1"
+    local step_name="$2"
+    local filename="${ARTIFACTS_DIR}/step${step_num}-${step_name}.md"
+
+    if [ -f "$filename" ]; then
+        # Extract content after the header (skip first 2 lines)
+        tail -n +3 "$filename"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Check if step should run
+should_run_step() {
+    local step_num="$1"
+    [ "$step_num" -gt "$RESUME_FROM" ]
 }
 
 # Track token usage (estimates based on character count)
@@ -288,8 +346,9 @@ echo "✓ Vision captured! Starting brand development..."
 echo ""
 
 # Step 1: Target Profile
-echo "Step 1/9: Creating Target Profile..."
-STEP1_OUTPUT=$(claude -p "$(cat <<EOF
+if should_run_step 1; then
+    echo "Step 1/9: Creating Target Profile..."
+    STEP1_OUTPUT=$(claude -p "$(cat <<EOF
 We're going to build the following product/service. Create a brand target profile following the brand framework shown in @instructions/1.png
 
 USER VISION:
@@ -305,70 +364,105 @@ Create a comprehensive target profile based on the user's vision above.
 EOF
 )")
 
-log_tokens "1" "target-profile" "$USER_VISION" "$STEP1_OUTPUT"
-save_artifact "1" "target-profile" "$STEP1_OUTPUT"
-echo "✓ Step 1 complete"
-echo ""
+    log_tokens "1" "target-profile" "$USER_VISION" "$STEP1_OUTPUT"
+    save_artifact "1" "target-profile" "$STEP1_OUTPUT"
+    echo "✓ Step 1 complete"
+    echo ""
+else
+    echo "⏭️  Step 1: Loading from artifacts..."
+    STEP1_OUTPUT=$(load_artifact "1" "target-profile")
+    echo "✓ Step 1 loaded"
+    echo ""
+fi
 
 # Step 2: Product Features
-echo "Step 2/9: Defining Product Features..."
-STEP2_OUTPUT=$(claude -p "$(build_prompt "$STEP1_OUTPUT" <<'EOF'
+if should_run_step 2; then
+    echo "Step 2/9: Defining Product Features..."
+    STEP2_OUTPUT=$(claude -p "$(build_prompt "$STEP1_OUTPUT" <<'EOF'
 Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.
 EOF
 )")
 
-log_tokens "2" "product-features" "$STEP1_OUTPUT" "$STEP2_OUTPUT"
-save_artifact "2" "product-features" "$STEP2_OUTPUT"
-echo "✓ Step 2 complete"
-echo ""
+    log_tokens "2" "product-features" "$STEP1_OUTPUT" "$STEP2_OUTPUT"
+    save_artifact "2" "product-features" "$STEP2_OUTPUT"
+    echo "✓ Step 2 complete"
+    echo ""
+else
+    echo "⏭️  Step 2: Loading from artifacts..."
+    STEP2_OUTPUT=$(load_artifact "2" "product-features")
+    echo "✓ Step 2 loaded"
+    echo ""
+fi
 
 # Step 3: Features to Benefits
-echo "Step 3/9: Converting Features to Benefits..."
-STEP3_OUTPUT=$(claude -p "$(build_prompt "$STEP2_OUTPUT" <<'EOF'
+if should_run_step 3; then
+    echo "Step 3/9: Converting Features to Benefits..."
+    STEP3_OUTPUT=$(claude -p "$(build_prompt "$STEP2_OUTPUT" <<'EOF'
 Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.
 EOF
 )")
 
-log_tokens "3" "features-to-benefits" "$STEP2_OUTPUT" "$STEP3_OUTPUT"
-save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
-echo "✓ Step 3 complete"
-echo ""
+    log_tokens "3" "features-to-benefits" "$STEP2_OUTPUT" "$STEP3_OUTPUT"
+    save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
+    echo "✓ Step 3 complete"
+    echo ""
+else
+    echo "⏭️  Step 3: Loading from artifacts..."
+    STEP3_OUTPUT=$(load_artifact "3" "features-to-benefits")
+    echo "✓ Step 3 loaded"
+    echo ""
+fi
 
 # Step 4: Winning Zone
-echo "Step 4/9: Mapping Winning Zone..."
-STEP4_OUTPUT=$(claude -p "$(build_prompt "$STEP3_OUTPUT" <<'EOF'
+if should_run_step 4; then
+    echo "Step 4/9: Mapping Winning Zone..."
+    STEP4_OUTPUT=$(claude -p "$(build_prompt "$STEP3_OUTPUT" <<'EOF'
 Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?
 EOF
 )")
 
-log_tokens "4" "winning-zone" "$STEP3_OUTPUT" "$STEP4_OUTPUT"
-save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
-echo "✓ Step 4 complete"
-echo ""
+    log_tokens "4" "winning-zone" "$STEP3_OUTPUT" "$STEP4_OUTPUT"
+    save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
+    echo "✓ Step 4 complete"
+    echo ""
+else
+    echo "⏭️  Step 4: Loading from artifacts..."
+    STEP4_OUTPUT=$(load_artifact "4" "winning-zone")
+    echo "✓ Step 4 loaded"
+    echo ""
+fi
 
 # Step 5: Brand Persona
-echo "Step 5/9: Defining Brand Persona..."
-STEP5_OUTPUT=$(claude -p "$(build_prompt "$STEP4_OUTPUT" <<'EOF'
+if should_run_step 5; then
+    echo "Step 5/9: Defining Brand Persona..."
+    STEP5_OUTPUT=$(claude -p "$(build_prompt "$STEP4_OUTPUT" <<'EOF'
 Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
 Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.
 EOF
 )")
 
-log_tokens "5" "brand-persona" "$STEP4_OUTPUT" "$STEP5_OUTPUT"
-save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
-echo "✓ Step 5 complete"
-echo ""
+    log_tokens "5" "brand-persona" "$STEP4_OUTPUT" "$STEP5_OUTPUT"
+    save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
+    echo "✓ Step 5 complete"
+    echo ""
+else
+    echo "⏭️  Step 5: Loading from artifacts..."
+    STEP5_OUTPUT=$(load_artifact "5" "brand-persona")
+    echo "✓ Step 5 loaded"
+    echo ""
+fi
 
 # Step 6: Brand Guidelines
-echo "Step 6/9: Creating Brand Guidelines..."
-STEP6_OUTPUT=$(claude -p "$(build_prompt "$STEP5_OUTPUT" <<'EOF'
+if should_run_step 6; then
+    echo "Step 6/9: Creating Brand Guidelines..."
+    STEP6_OUTPUT=$(claude -p "$(build_prompt "$STEP5_OUTPUT" <<'EOF'
 Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
@@ -377,29 +471,36 @@ Translate this into comprehensive brand guidelines, including:
 EOF
 )")
 
-log_tokens "6" "brand-guidelines" "$STEP5_OUTPUT" "$STEP6_OUTPUT"
-save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
+    log_tokens "6" "brand-guidelines" "$STEP5_OUTPUT" "$STEP6_OUTPUT"
+    save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
 
-# Generate PDF for brand guidelines
-echo "📄 Generating PDF for brand guidelines..."
-if command -v pandoc &> /dev/null; then
-    pandoc "${ARTIFACTS_DIR}/step6-brand-guidelines.md" \
-        -o "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" \
-        --pdf-engine=xelatex \
-        -V geometry:margin=1in \
-        -V fontsize=12pt \
-        --toc \
-        2>/dev/null && echo "✓ PDF generated: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" || echo "⚠️  PDF generation failed, markdown saved"
+    # Generate PDF for brand guidelines
+    echo "📄 Generating PDF for brand guidelines..."
+    if command -v pandoc &> /dev/null; then
+        pandoc "${ARTIFACTS_DIR}/step6-brand-guidelines.md" \
+            -o "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" \
+            --pdf-engine=xelatex \
+            -V geometry:margin=1in \
+            -V fontsize=12pt \
+            --toc \
+            2>/dev/null && echo "✓ PDF generated: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" || echo "⚠️  PDF generation failed, markdown saved"
+    else
+        echo "⚠️  pandoc not found, skipping PDF generation (markdown saved)"
+    fi
+
+    echo "✓ Step 6 complete"
+    echo ""
 else
-    echo "⚠️  pandoc not found, skipping PDF generation (markdown saved)"
+    echo "⏭️  Step 6: Loading from artifacts..."
+    STEP6_OUTPUT=$(load_artifact "6" "brand-guidelines")
+    echo "✓ Step 6 loaded"
+    echo ""
 fi
 
-echo "✓ Step 6 complete"
-echo ""
-
 # Step 7: Website Design Prompt
-echo "Step 7/9: Generating Website Design Prompt..."
-STEP7_OUTPUT=$(claude -p "$(build_prompt "$STEP6_OUTPUT" <<'EOF'
+if should_run_step 7; then
+    echo "Step 7/9: Generating Website Design Prompt..."
+    STEP7_OUTPUT=$(claude -p "$(build_prompt "$STEP6_OUTPUT" <<'EOF'
 Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
 Include:
@@ -414,28 +515,42 @@ Include:
 EOF
 )")
 
-log_tokens "7" "website-design-prompt" "$STEP6_OUTPUT" "$STEP7_OUTPUT"
-save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
-echo "✓ Step 7 complete"
-echo ""
+    log_tokens "7" "website-design-prompt" "$STEP6_OUTPUT" "$STEP7_OUTPUT"
+    save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
+    echo "✓ Step 7 complete"
+    echo ""
+else
+    echo "⏭️  Step 7: Loading from artifacts..."
+    STEP7_OUTPUT=$(load_artifact "7" "website-design-prompt")
+    echo "✓ Step 7 loaded"
+    echo ""
+fi
 
 # Step 8: Build Site
-echo "Step 8/9: Building High Fidelity Website..."
-STEP8_OUTPUT=$(claude -p "$(build_prompt "$STEP7_OUTPUT" <<'EOF'
+if should_run_step 8; then
+    echo "Step 8/9: Building High Fidelity Website..."
+    STEP8_OUTPUT=$(claude -p "$(build_prompt "$STEP7_OUTPUT" <<'EOF'
 Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
 
 Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code.
 EOF
 )")
 
-log_tokens "8" "build-site" "$STEP7_OUTPUT" "$STEP8_OUTPUT"
-save_artifact "8" "build-site" "$STEP8_OUTPUT"
-echo "✓ Step 8 complete"
-echo ""
+    log_tokens "8" "build-site" "$STEP7_OUTPUT" "$STEP8_OUTPUT"
+    save_artifact "8" "build-site" "$STEP8_OUTPUT"
+    echo "✓ Step 8 complete"
+    echo ""
+else
+    echo "⏭️  Step 8: Loading from artifacts..."
+    STEP8_OUTPUT=$(load_artifact "8" "build-site")
+    echo "✓ Step 8 loaded"
+    echo ""
+fi
 
 # Step 9: Video Marketing Prompt
-echo "Step 9/9: Creating Video Marketing Prompts..."
-STEP9_OUTPUT=$(claude -p "$(build_prompt "$STEP8_OUTPUT" <<'EOF'
+if should_run_step 9; then
+    echo "Step 9/9: Creating Video Marketing Prompts..."
+    STEP9_OUTPUT=$(claude -p "$(build_prompt "$STEP8_OUTPUT" <<'EOF'
 Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
@@ -452,10 +567,16 @@ Create detailed prompts for:
 EOF
 )")
 
-log_tokens "9" "video-marketing-prompts" "$STEP8_OUTPUT" "$STEP9_OUTPUT"
-save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
-echo "✓ Step 9 complete"
-echo ""
+    log_tokens "9" "video-marketing-prompts" "$STEP8_OUTPUT" "$STEP9_OUTPUT"
+    save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
+    echo "✓ Step 9 complete"
+    echo ""
+else
+    echo "⏭️  Step 9: Loading from artifacts..."
+    STEP9_OUTPUT=$(load_artifact "9" "video-marketing-prompts")
+    echo "✓ Step 9 loaded"
+    echo ""
+fi
 
 # Save final output
 echo "💾 Saving complete brand development to brand-output.md..."
