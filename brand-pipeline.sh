@@ -58,14 +58,24 @@ fi
 
 echo ""
 
-# Build prompt text with previous context and a heredoc body.
-build_prompt() {
-    local prev="$1"
-    printf 'Previous context:\n'
-    printf '%s\n' "$prev"
-    printf '\n'
-    cat
+# Build complete prompt in a file (context + new prompt)
+build_full_prompt() {
+    local prev_output="$1"
+    local new_prompt="$2"
+    local output_file="$3"
+
+    {
+        printf 'Previous context:\n'
+        printf '%s' "$prev_output"
+        printf '\n\n'
+        printf '%s' "$new_prompt"
+    } > "$output_file"
 }
+
+# Temp files for passing context between steps
+CONTEXT_TEMP_FILE="/tmp/brand-pipeline-context-$$.txt"
+PROMPT_TEMP_FILE="/tmp/brand-pipeline-prompt-$$.txt"
+trap "rm -f $CONTEXT_TEMP_FILE $PROMPT_TEMP_FILE" EXIT
 
 # Save step output to markdown file
 save_artifact() {
@@ -378,12 +388,10 @@ fi
 # Step 2: Product Features
 if should_run_step 2; then
     echo "Step 2/9: Defining Product Features..."
-    STEP2_OUTPUT=$(claude -p "$(build_prompt "$STEP1_OUTPUT" <<'EOF'
-Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    build_full_prompt "$STEP1_OUTPUT" "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
-Think comprehensively about what features would delight users and differentiate the product.
-EOF
-)")
+Think comprehensively about what features would delight users and differentiate the product." "$PROMPT_TEMP_FILE"
+    STEP2_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "2" "product-features" "$STEP1_OUTPUT" "$STEP2_OUTPUT"
     save_artifact "2" "product-features" "$STEP2_OUTPUT"
@@ -399,12 +407,10 @@ fi
 # Step 3: Features to Benefits
 if should_run_step 3; then
     echo "Step 3/9: Converting Features to Benefits..."
-    STEP3_OUTPUT=$(claude -p "$(build_prompt "$STEP2_OUTPUT" <<'EOF'
-Next, turn our features into benefits following the framework in @instructions/3.png
+    build_full_prompt "$STEP2_OUTPUT" "Next, turn our features into benefits following the framework in @instructions/3.png
 
-For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.
-EOF
-)")
+For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality." "$PROMPT_TEMP_FILE"
+    STEP3_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "3" "features-to-benefits" "$STEP2_OUTPUT" "$STEP3_OUTPUT"
     save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
@@ -420,12 +426,10 @@ fi
 # Step 4: Winning Zone
 if should_run_step 4; then
     echo "Step 4/9: Mapping Winning Zone..."
-    STEP4_OUTPUT=$(claude -p "$(build_prompt "$STEP3_OUTPUT" <<'EOF'
-Our next step is to map out our winning zone following the framework in @instructions/4.png
+    build_full_prompt "$STEP3_OUTPUT" "Our next step is to map out our winning zone following the framework in @instructions/4.png
 
-How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?
-EOF
-)")
+How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?" "$PROMPT_TEMP_FILE"
+    STEP4_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "4" "winning-zone" "$STEP3_OUTPUT" "$STEP4_OUTPUT"
     save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
@@ -441,12 +445,10 @@ fi
 # Step 5: Brand Persona
 if should_run_step 5; then
     echo "Step 5/9: Defining Brand Persona..."
-    STEP5_OUTPUT=$(claude -p "$(build_prompt "$STEP4_OUTPUT" <<'EOF'
-Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    build_full_prompt "$STEP4_OUTPUT" "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
-Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.
-EOF
-)")
+Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning." "$PROMPT_TEMP_FILE"
+    STEP5_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "5" "brand-persona" "$STEP4_OUTPUT" "$STEP5_OUTPUT"
     save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
@@ -462,14 +464,12 @@ fi
 # Step 6: Brand Guidelines
 if should_run_step 6; then
     echo "Step 6/9: Creating Brand Guidelines..."
-    STEP6_OUTPUT=$(claude -p "$(build_prompt "$STEP5_OUTPUT" <<'EOF'
-Translate this into comprehensive brand guidelines, including:
+    build_full_prompt "$STEP5_OUTPUT" "Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
-- Key messaging pillars
-EOF
-)")
+- Key messaging pillars" "$PROMPT_TEMP_FILE"
+    STEP6_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "6" "brand-guidelines" "$STEP5_OUTPUT" "$STEP6_OUTPUT"
     save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
@@ -500,8 +500,7 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/9: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p "$(build_prompt "$STEP6_OUTPUT" <<'EOF'
-Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
+    build_full_prompt "$STEP6_OUTPUT" "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page. Each section should be a separate prompt with extremely detailed instructions for designing the section.
 
 Include:
 - How to Use This
@@ -511,9 +510,8 @@ Include:
 - Alternative Hero Prompts
 - Component Prompts for Remixing
 - Final Checklist Prompt
-- Notes for Best Results
-EOF
-)")
+- Notes for Best Results" "$PROMPT_TEMP_FILE"
+    STEP7_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "7" "website-design-prompt" "$STEP6_OUTPUT" "$STEP7_OUTPUT"
     save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
@@ -529,12 +527,10 @@ fi
 # Step 8: Build Site
 if should_run_step 8; then
     echo "Step 8/9: Building High Fidelity Website..."
-    STEP8_OUTPUT=$(claude -p "$(build_prompt "$STEP7_OUTPUT" <<'EOF'
-Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
+    build_full_prompt "$STEP7_OUTPUT" "Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
 
-Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code.
-EOF
-)")
+Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code." "$PROMPT_TEMP_FILE"
+    STEP8_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "8" "build-site" "$STEP7_OUTPUT" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
@@ -550,8 +546,7 @@ fi
 # Step 9: Video Marketing Prompt
 if should_run_step 9; then
     echo "Step 9/9: Creating Video Marketing Prompts..."
-    STEP9_OUTPUT=$(claude -p "$(build_prompt "$STEP8_OUTPUT" <<'EOF'
-Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    build_full_prompt "$STEP8_OUTPUT" "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
@@ -563,9 +558,8 @@ Create detailed prompts for:
 - Scene-by-scene breakdown
 - Animation specifications
 - Code structure for Remotion
-- Asset requirements
-EOF
-)")
+- Asset requirements" "$PROMPT_TEMP_FILE"
+    STEP9_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
 
     log_tokens "9" "video-marketing-prompts" "$STEP8_OUTPUT" "$STEP9_OUTPUT"
     save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
