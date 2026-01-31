@@ -332,12 +332,24 @@ echo "  - Target audience"
 echo "  - Key differentiators"
 echo "  - Any other relevant details"
 echo ""
-echo "Enter your vision below (press Ctrl+D when finished):"
+echo "Enter your vision below (press Enter on an empty line when finished):"
 echo "────────────────────────────────────────────────────────────────"
 echo ""
 
-# Read multi-line input until EOF (Ctrl+D)
-USER_VISION=$(cat)
+# Read multi-line input until empty line
+USER_VISION=""
+while IFS= read -r line; do
+    # Break on empty line
+    if [[ -z "$line" ]]; then
+        break
+    fi
+    # Append line to vision
+    if [[ -z "$USER_VISION" ]]; then
+        USER_VISION="$line"
+    else
+        USER_VISION="${USER_VISION}"$'\n'"${line}"
+    fi
+done
 
 if [[ -z "$USER_VISION" ]]; then
     echo ""
