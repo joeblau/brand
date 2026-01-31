@@ -20,7 +20,7 @@ We're going to create a <product>, build the brand target profile following the 
 - any high level ideas you believe
 ```
 
-![Target Profile](images/1.png)
+![Target Profile](instructions/1.png)
 
 2. Product Features
 
@@ -31,7 +31,7 @@ We're going to create a <product>, build the brand target profile following the 
 Okay let's talk features, let's list all of the potential project features that would be amazing for a consumer based following the attached image?
 ```
 
-![Product Features](images/2.png)
+![Product Features](instructions/2.png)
 
 
 3. Features to Benefits
@@ -40,7 +40,7 @@ Okay let's talk features, let's list all of the potential project features that 
 Next, turn our features into benefits following the attached image?
 ```
 
-![Features to Benefits](images/3.png)
+![Features to Benefits](instructions/3.png)
 
 
 4. Winning Zone
@@ -49,7 +49,7 @@ Next, turn our features into benefits following the attached image?
 Our next step is to map our our winning zone, how will our AI service outperform everyone else in the winning zone following the attached image?
 ```
 
-![Winning Zone](images/4.png)
+![Winning Zone](instructions/4.png)
 
 5. Brand Persona
 
@@ -57,7 +57,7 @@ Our next step is to map our our winning zone, how will our AI service outperform
 Now based on this, let's choose a primary and secondary brand persona following the attached image
 ```
 
-![Brand Persona](images/5.png)
+![Brand Persona](instructions/5.png)
 
 6. Brand Guidelines
 
