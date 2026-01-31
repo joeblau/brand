@@ -95,6 +95,31 @@ echo ""
 echo "✓ Project created successfully in website/ folder!"
 echo ""
 
+# Create Remotion video project
+echo "🎬 Video Project Setup"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "📦 Creating Remotion video project in video/ folder..."
+echo ""
+
+# Remove existing video folder if it exists
+if [ -d "video" ]; then
+    echo "⚠️  video/ folder already exists. Removing..."
+    rm -rf video
+fi
+
+# Create Remotion project
+npx create-video@latest video
+
+if [ $? -ne 0 ]; then
+    echo "❌ Remotion project creation failed."
+    exit 1
+fi
+
+echo ""
+echo "✓ Remotion project created successfully in video/ folder!"
+echo ""
+
 # Step 1: Target Profile
 echo "Step 1/9: Creating Target Profile..."
 STEP1_OUTPUT=$(claude -p "$(cat <<'EOF'
