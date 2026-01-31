@@ -59,6 +59,19 @@ else
     echo "✓ Claude CLI is installed"
 fi
 
+# Check for degit
+if ! command -v degit &> /dev/null; then
+    echo "📦 Installing degit..."
+    npm install -g degit
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to install degit"
+        exit 1
+    fi
+    echo "✓ degit installed"
+else
+    echo "✓ degit is installed"
+fi
+
 echo ""
 
 # Create shadcn project
@@ -118,8 +131,7 @@ if [ -d "video" ]; then
 fi
 
 # Create blank Remotion project without git
-# Note: Some flags may prompt for user input if not supported
-npx create-video@latest video --template blank || {
+npx degit create-video@latest video --blank|| {
     echo "❌ Remotion project creation failed."
     exit 1
 }
