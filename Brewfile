@@ -6,6 +6,6 @@ brew "pandoc"
 # Required for running the brand pipeline
 brew "node"
 
-# Optional: TeX distribution for pandoc PDF generation
-# Uncomment if you want higher quality PDF output
-# cask "mactex-no-gui"
+# TeX distribution for high-quality PDF generation
+# Note: This is a large download (~4-5GB) but required for PDF output
+cask "mactex-no-gui"

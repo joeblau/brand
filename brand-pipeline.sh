@@ -447,17 +447,34 @@ if should_run_step 6; then
     save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
 
     # Generate PDF for brand guidelines
-    echo "📄 Generating PDF for brand guidelines..."
+    echo "📄 Generating high-quality PDF for brand guidelines..."
+    mkdir -p assets
     if command -v pandoc &> /dev/null; then
-        pandoc "${ARTIFACTS_DIR}/step6-brand-guidelines.md" \
-            -o "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" \
-            --pdf-engine=xelatex \
-            -V geometry:margin=1in \
-            -V fontsize=12pt \
-            --toc \
-            2>/dev/null && echo "✓ PDF generated: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" || echo "⚠️  PDF generation failed, markdown saved"
+        if command -v xelatex &> /dev/null; then
+            pandoc "${ARTIFACTS_DIR}/step6-brand-guidelines.md" \
+                -o "assets/brand-guidelines.pdf" \
+                --pdf-engine=xelatex \
+                -V geometry:margin=1in \
+                -V fontsize=11pt \
+                -V documentclass=article \
+                -V papersize=letter \
+                --toc \
+                --toc-depth=2 \
+                2>&1 | tee /tmp/pandoc-error.log
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+                echo "✓ PDF generated: assets/brand-guidelines.pdf"
+            else
+                echo "⚠️  PDF generation failed. Error log:"
+                cat /tmp/pandoc-error.log
+                echo "Markdown version saved in artifacts/"
+            fi
+        else
+            echo "⚠️  xelatex (MacTeX) not found. Install with: brew bundle"
+            echo "   Skipping PDF generation (markdown saved)"
+        fi
     else
-        echo "⚠️  pandoc not found, skipping PDF generation (markdown saved)"
+        echo "⚠️  pandoc not found. Install with: brew bundle"
+        echo "   Skipping PDF generation (markdown saved)"
     fi
 
     echo "✓ Step 6 complete"
@@ -649,12 +666,20 @@ echo ""
 echo "📄 Outputs saved:"
 echo "  - Consolidated: brand-output.md"
 echo "  - Individual steps: ${ARTIFACTS_DIR}/"
-echo "  - Brand Guidelines PDF: ${ARTIFACTS_DIR}/step6-brand-guidelines.pdf (if pandoc available)"
 echo ""
-ls -lh ${ARTIFACTS_DIR}/*.md 2>/dev/null | awk '{print "  - "$9" ("$5")"}'
-if [ -f "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" ]; then
-    ls -lh "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" | awk '{print "  - "$9" ("$5")"}'
+echo "🎨 Brand Assets (assets/):"
+if [ -f "assets/brand-guidelines.pdf" ]; then
+    ls -lh assets/brand-guidelines.pdf | awk '{print "  - "$9" ("$5")"}'
 fi
+if [ -f "assets/brand-video.mp4" ]; then
+    ls -lh assets/brand-video.mp4 | awk '{print "  - "$9" ("$5")"}'
+fi
+if [ -d "assets" ]; then
+    echo "  - Other assets: assets/"
+fi
+echo ""
+echo "📝 Step Artifacts:"
+ls -lh ${ARTIFACTS_DIR}/*.md 2>/dev/null | awk '{print "  - "$9" ("$5")"}'
 
 # Display token usage summary
 if [ "$TOTAL_ESTIMATED_OUTPUT_TOKENS" != "0" ]; then
