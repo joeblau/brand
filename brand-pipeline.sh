@@ -8,6 +8,86 @@ set -e  # Exit on error
 echo "🎨 Starting Brand Development Pipeline..."
 echo ""
 
+# Check for Node.js and npm
+echo "🔍 Checking prerequisites..."
+
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js is not installed"
+    echo "📦 Installing Node.js..."
+
+    # Detect OS and install accordingly
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        if command -v brew &> /dev/null; then
+            brew install node
+        else
+            echo "⚠️  Homebrew not found. Please install Node.js manually from https://nodejs.org/"
+            exit 1
+        fi
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y nodejs npm
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y nodejs npm
+        else
+            echo "⚠️  Package manager not found. Please install Node.js manually from https://nodejs.org/"
+            exit 1
+        fi
+    else
+        echo "⚠️  OS not supported for auto-install. Please install Node.js manually from https://nodejs.org/"
+        exit 1
+    fi
+else
+    echo "✓ Node.js $(node --version) is installed"
+fi
+
+if ! command -v npm &> /dev/null; then
+    echo "❌ npm is not installed"
+    echo "⚠️  npm should come with Node.js. Please reinstall Node.js from https://nodejs.org/"
+    exit 1
+else
+    echo "✓ npm $(npm --version) is installed"
+fi
+
+echo ""
+
+# Create shadcn project
+echo "🚀 Project Setup"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "Please visit https://ui.shadcn.com/create to configure your project"
+echo ""
+echo "Once you've configured your preferences, copy the npx command and paste it below."
+echo ""
+echo "Example:"
+echo "npx shadcn@latest create --preset \"https://ui.shadcn.com/init?base=radix&style=vega&baseColor=neutral&theme=neutral&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=default&template=next&rtl=false\" --template next"
+echo ""
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+read -p "Paste your npx command here: " NPX_COMMAND
+
+if [[ -z "$NPX_COMMAND" ]]; then
+    echo "❌ No command provided. Exiting..."
+    exit 1
+fi
+
+echo ""
+echo "📦 Creating your shadcn project..."
+echo ""
+
+# Execute the npx command
+eval "$NPX_COMMAND"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Project creation failed. Please check the command and try again."
+    exit 1
+fi
+
+echo ""
+echo "✓ Project created successfully!"
+echo ""
+
 # Step 1: Target Profile
 echo "Step 1/9: Creating Target Profile..."
 STEP1_OUTPUT=$(claude -p "$(cat <<'EOF'
