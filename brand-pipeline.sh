@@ -120,22 +120,52 @@ echo ""
 echo "✓ Remotion project created successfully in video/ folder!"
 echo ""
 
+# Collect user input for brand development
+echo "💭 Brand Vision"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+echo "What do you want to build? Describe your product/service idea."
+echo ""
+echo "You can include:"
+echo "  - Product description"
+echo "  - Reference websites (URLs)"
+echo "  - Target audience"
+echo "  - Key differentiators"
+echo "  - Any other relevant details"
+echo ""
+echo "Enter your vision below (press Ctrl+D when finished):"
+echo "────────────────────────────────────────────────────────────────"
+echo ""
+
+# Read multi-line input until EOF (Ctrl+D)
+USER_VISION=$(cat)
+
+if [[ -z "$USER_VISION" ]]; then
+    echo ""
+    echo "❌ No vision provided. Exiting..."
+    exit 1
+fi
+
+echo ""
+echo "────────────────────────────────────────────────────────────────"
+echo "✓ Vision captured! Starting brand development..."
+echo ""
+
 # Step 1: Target Profile
 echo "Step 1/9: Creating Target Profile..."
-STEP1_OUTPUT=$(claude -p "$(cat <<'EOF'
-We're going to create clawdbot as a service, build the brand target profile following the brand framework shown in @instructions/1.png
+STEP1_OUTPUT=$(claude -p "$(cat <<EOF
+We're going to build the following product/service. Create a brand target profile following the brand framework shown in @instructions/1.png
 
-Reference websites:
-- https://clawdhub.com
-- https://clawdhub.com/skills
-- https://x.com/steipete
+USER VISION:
+${USER_VISION}
 
 Consider:
 - consumer vs b2b positioning
 - "this for that" comparisons
 - high level strategic ideas
+- competitive landscape
 
-Create a comprehensive target profile for this AI service.
+Create a comprehensive target profile based on the user's vision above.
 EOF
 )")
 
