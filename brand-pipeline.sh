@@ -88,6 +88,132 @@ load_artifact() {
     fi
 }
 
+# Build context from previous steps when resuming
+build_resume_context() {
+    local current_step="$1"
+
+    # If not resuming, return empty (--continue handles context in live session)
+    if [ "$RESUME_FROM" -eq 0 ]; then
+        echo ""
+        return
+    fi
+
+    # If current step was already completed, return empty
+    if [ "$current_step" -le "$RESUME_FROM" ]; then
+        echo ""
+        return
+    fi
+
+    # Build context from all completed steps
+    local context="════════════════════════════════════════════════════════════════
+RESTORED CONTEXT FROM PREVIOUS SESSION
+════════════════════════════════════════════════════════════════
+
+The following outputs were generated in a previous session. Use this context to inform your work on the current step.
+
+"
+
+    # Include user vision
+    if [ -f "$VISION_FILE" ]; then
+        context="${context}## USER VISION
+$(cat "$VISION_FILE")
+
+---
+
+"
+    fi
+
+    # Add each completed step's output
+    if [ "$current_step" -gt 1 ] && [ "$RESUME_FROM" -ge 1 ] && [ -n "$STEP1_OUTPUT" ]; then
+        context="${context}## Step 1: Target Profile
+${STEP1_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 2 ] && [ "$RESUME_FROM" -ge 2 ] && [ -n "$STEP2_OUTPUT" ]; then
+        context="${context}## Step 2: Product Features
+${STEP2_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 3 ] && [ "$RESUME_FROM" -ge 3 ] && [ -n "$STEP3_OUTPUT" ]; then
+        context="${context}## Step 3: Features to Benefits
+${STEP3_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 4 ] && [ "$RESUME_FROM" -ge 4 ] && [ -n "$STEP4_OUTPUT" ]; then
+        context="${context}## Step 4: Winning Zone
+${STEP4_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 5 ] && [ "$RESUME_FROM" -ge 5 ] && [ -n "$STEP5_OUTPUT" ]; then
+        context="${context}## Step 5: Brand Persona
+${STEP5_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 6 ] && [ "$RESUME_FROM" -ge 6 ] && [ -n "$STEP6_OUTPUT" ]; then
+        context="${context}## Step 6: Brand Guidelines
+${STEP6_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 7 ] && [ "$RESUME_FROM" -ge 7 ] && [ -n "$STEP7_OUTPUT" ]; then
+        context="${context}## Step 7: Website Design Prompt
+${STEP7_OUTPUT}
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 8 ] && [ "$RESUME_FROM" -ge 8 ] && [ -n "$STEP8_OUTPUT" ]; then
+        context="${context}## Step 8: Build Site (Summary)
+Website implementation completed in previous session.
+
+---
+
+"
+    fi
+
+    if [ "$current_step" -gt 9 ] && [ "$RESUME_FROM" -ge 9 ] && [ -n "$STEP9_OUTPUT" ]; then
+        context="${context}## Step 9: Video Marketing Prompts
+${STEP9_OUTPUT}
+
+---
+
+"
+    fi
+
+    context="${context}════════════════════════════════════════════════════════════════
+END OF RESTORED CONTEXT
+════════════════════════════════════════════════════════════════
+
+"
+
+    echo "$context"
+}
+
 # Check if step should run
 should_run_step() {
     local step_num="$1"
@@ -449,7 +575,8 @@ fi
 # Step 2: Product Features
 if should_run_step 2; then
     echo "Step 2/10: Defining Product Features..."
-    STEP2_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    RESUME_CONTEXT=$(build_resume_context 2)
+    STEP2_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.")
 
@@ -467,7 +594,8 @@ fi
 # Step 3: Features to Benefits
 if should_run_step 3; then
     echo "Step 3/10: Converting Features to Benefits..."
-    STEP3_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Next, turn our features into benefits following the framework in @instructions/3.png
+    RESUME_CONTEXT=$(build_resume_context 3)
+    STEP3_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.")
 
@@ -485,7 +613,8 @@ fi
 # Step 4: Winning Zone
 if should_run_step 4; then
     echo "Step 4/10: Mapping Winning Zone..."
-    STEP4_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Our next step is to map out our winning zone following the framework in @instructions/4.png
+    RESUME_CONTEXT=$(build_resume_context 4)
+    STEP4_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?")
 
@@ -503,7 +632,8 @@ fi
 # Step 5: Brand Persona
 if should_run_step 5; then
     echo "Step 5/10: Defining Brand Persona..."
-    STEP5_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    RESUME_CONTEXT=$(build_resume_context 5)
+    STEP5_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
 Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.")
 
@@ -521,7 +651,8 @@ fi
 # Step 6: Brand Guidelines
 if should_run_step 6; then
     echo "Step 6/10: Creating Brand Guidelines..."
-    STEP6_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Translate this into comprehensive brand guidelines, including:
+    RESUME_CONTEXT=$(build_resume_context 6)
+    STEP6_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
@@ -573,7 +704,8 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a prompt that I can put into v0.app that will allow me to create an amazingly rich visually appealing landing page.
+    RESUME_CONTEXT=$(build_resume_context 7)
+    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Research Aura.build and some of its most popular templates. Create a prompt that I can put into v0.app that will allow me to create an amazingly rich visually appealing landing page.
 
 The prompt should incorporate:
 - Design patterns and visual styles from popular Aura.build templates
@@ -620,8 +752,9 @@ if should_run_step 8; then
     fi
 
     V0_PROMPT=$(cat "assets/v0-landing-page-prompt.md")
+    RESUME_CONTEXT=$(build_resume_context 8)
 
-    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory using this v0.app prompt as your guide:
+    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now implement the website design in the website/ directory using this v0.app prompt as your guide:
 
 ════════════════════════════════════════════════════════════════
 v0.app Landing Page Prompt:
@@ -657,7 +790,8 @@ fi
 # Step 9: Video Marketing Prompt
 if should_run_step 9; then
     echo "Step 9/10: Creating Video Marketing Prompts..."
-    STEP9_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    RESUME_CONTEXT=$(build_resume_context 9)
+    STEP9_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
@@ -709,8 +843,9 @@ if should_run_step 10; then
     fi
 
     VIDEO_PROMPTS=$(cat "assets/video-prompts.md")
+    RESUME_CONTEXT=$(build_resume_context 10)
 
-    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory using these video prompts as your guide:
+    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now implement the marketing video in the video/ directory using these video prompts as your guide:
 
 ════════════════════════════════════════════════════════════════
 Video Marketing Prompts:
