@@ -12,6 +12,13 @@ echo ""
 ARTIFACTS_DIR="artifacts"
 mkdir -p "$ARTIFACTS_DIR"
 echo "📁 Created artifacts directory: $ARTIFACTS_DIR"
+
+# Initialize token tracking log
+TOKEN_LOG="${ARTIFACTS_DIR}/token-usage.log"
+echo "Token Usage Log - $(date)" > "$TOKEN_LOG"
+echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+echo "" >> "$TOKEN_LOG"
+
 echo ""
 
 # Build prompt text with previous context and a heredoc body.
@@ -36,6 +43,42 @@ save_artifact() {
 ${content}
 EOF
     echo "💾 Saved: $filename"
+}
+
+# Track token usage (estimates based on character count)
+TOTAL_ESTIMATED_INPUT_TOKENS=0
+TOTAL_ESTIMATED_OUTPUT_TOKENS=0
+declare -a STEP_TOKENS
+
+# Estimate tokens (rough approximation: ~4 chars per token)
+estimate_tokens() {
+    local text="$1"
+    local char_count=${#text}
+    echo $((char_count / 4))
+}
+
+# Log token usage for a step
+log_tokens() {
+    local step_num="$1"
+    local step_name="$2"
+    local input_text="$3"
+    local output_text="$4"
+
+    local input_tokens=$(estimate_tokens "$input_text")
+    local output_tokens=$(estimate_tokens "$output_text")
+    local total_tokens=$((input_tokens + output_tokens))
+
+    TOTAL_ESTIMATED_INPUT_TOKENS=$((TOTAL_ESTIMATED_INPUT_TOKENS + input_tokens))
+    TOTAL_ESTIMATED_OUTPUT_TOKENS=$((TOTAL_ESTIMATED_OUTPUT_TOKENS + output_tokens))
+
+    local step_info="Step $step_num ($step_name): Input≈$input_tokens, Output≈$output_tokens, Total≈$total_tokens"
+    STEP_TOKENS+=("$step_info")
+
+    # Log to file
+    echo "$step_info" >> "$TOKEN_LOG"
+
+    # Display to console
+    echo "📊 Estimated tokens: ~$total_tokens (Input: ~$input_tokens, Output: ~$output_tokens)"
 }
 
 # Check for Node.js and npm
@@ -262,6 +305,7 @@ Create a comprehensive target profile based on the user's vision above.
 EOF
 )")
 
+log_tokens "1" "target-profile" "$USER_VISION" "$STEP1_OUTPUT"
 save_artifact "1" "target-profile" "$STEP1_OUTPUT"
 echo "✓ Step 1 complete"
 echo ""
@@ -275,6 +319,7 @@ Think comprehensively about what features would delight users and differentiate 
 EOF
 )")
 
+log_tokens "2" "product-features" "$STEP1_OUTPUT" "$STEP2_OUTPUT"
 save_artifact "2" "product-features" "$STEP2_OUTPUT"
 echo "✓ Step 2 complete"
 echo ""
@@ -288,6 +333,7 @@ For each feature, explain the tangible benefit it provides to the user. Focus on
 EOF
 )")
 
+log_tokens "3" "features-to-benefits" "$STEP2_OUTPUT" "$STEP3_OUTPUT"
 save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
 echo "✓ Step 3 complete"
 echo ""
@@ -301,6 +347,7 @@ How will our AI service outperform everyone else? What is our unique positioning
 EOF
 )")
 
+log_tokens "4" "winning-zone" "$STEP3_OUTPUT" "$STEP4_OUTPUT"
 save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
 echo "✓ Step 4 complete"
 echo ""
@@ -314,6 +361,7 @@ Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explai
 EOF
 )")
 
+log_tokens "5" "brand-persona" "$STEP4_OUTPUT" "$STEP5_OUTPUT"
 save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
 echo "✓ Step 5 complete"
 echo ""
@@ -329,6 +377,7 @@ Translate this into comprehensive brand guidelines, including:
 EOF
 )")
 
+log_tokens "6" "brand-guidelines" "$STEP5_OUTPUT" "$STEP6_OUTPUT"
 save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
 
 # Generate PDF for brand guidelines
@@ -365,6 +414,7 @@ Include:
 EOF
 )")
 
+log_tokens "7" "website-design-prompt" "$STEP6_OUTPUT" "$STEP7_OUTPUT"
 save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
 echo "✓ Step 7 complete"
 echo ""
@@ -378,6 +428,7 @@ Review the website requirements and create a comprehensive implementation plan t
 EOF
 )")
 
+log_tokens "8" "build-site" "$STEP7_OUTPUT" "$STEP8_OUTPUT"
 save_artifact "8" "build-site" "$STEP8_OUTPUT"
 echo "✓ Step 8 complete"
 echo ""
@@ -401,6 +452,7 @@ Create detailed prompts for:
 EOF
 )")
 
+log_tokens "9" "video-marketing-prompts" "$STEP8_OUTPUT" "$STEP9_OUTPUT"
 save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
 echo "✓ Step 9 complete"
 echo ""
@@ -464,4 +516,33 @@ echo ""
 ls -lh ${ARTIFACTS_DIR}/*.md 2>/dev/null | awk '{print "  - "$9" ("$5")"}'
 if [ -f "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" ]; then
     ls -lh "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" | awk '{print "  - "$9" ("$5")"}'
+fi
+
+# Display token usage summary
+if [ "$TOTAL_ESTIMATED_INPUT_TOKENS" != "0" ] || [ "$TOTAL_ESTIMATED_OUTPUT_TOKENS" != "0" ]; then
+    echo ""
+    echo "📊 Token Usage Summary (Estimated):"
+    echo "════════════════════════════════════════════════════════════════"
+    for step_info in "${STEP_TOKENS[@]}"; do
+        echo "  $step_info"
+    done
+    echo "────────────────────────────────────────────────────────────────"
+    echo "  Total Input Tokens:  ~$TOTAL_ESTIMATED_INPUT_TOKENS"
+    echo "  Total Output Tokens: ~$TOTAL_ESTIMATED_OUTPUT_TOKENS"
+    echo "  Grand Total:         ~$((TOTAL_ESTIMATED_INPUT_TOKENS + TOTAL_ESTIMATED_OUTPUT_TOKENS))"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Note: Token estimates use ~4 chars/token approximation."
+    echo "Detailed log saved to: $TOKEN_LOG"
+
+    # Save summary to log file
+    echo "" >> "$TOKEN_LOG"
+    echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+    echo "SUMMARY" >> "$TOKEN_LOG"
+    echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
+    echo "Total Estimated Input Tokens:  $TOTAL_ESTIMATED_INPUT_TOKENS" >> "$TOKEN_LOG"
+    echo "Total Estimated Output Tokens: $TOTAL_ESTIMATED_OUTPUT_TOKENS" >> "$TOKEN_LOG"
+    echo "Grand Total:                   $((TOTAL_ESTIMATED_INPUT_TOKENS + TOTAL_ESTIMATED_OUTPUT_TOKENS))" >> "$TOKEN_LOG"
+    echo "" >> "$TOKEN_LOG"
+    echo "Estimation method: ~4 characters per token" >> "$TOKEN_LOG"
 fi
