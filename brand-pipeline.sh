@@ -573,22 +573,85 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a HIGHLY DETAILED, comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
+    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Create a comprehensive v0.dev prompt kit for building our landing page. This will be used in the next step to actually build the website.
 
-CRITICAL: See @instructions/7.md for the framework example structure. Use it as inspiration for the level of detail and comprehensiveness, but customize the content to match our specific brand guidelines. DO NOT simplify or shorten the prompt - maintain or exceed the same level of detail as the example.
+OUTPUT FORMAT - You must create a markdown document with these EXACT sections:
 
-The output should be a complete, production-ready design prompt that includes:
-- How to Use This (with clear instructions)
-- Full Prompt (Copy This First) - this should be extremely detailed with specific design elements, animations, interactions, and visual specifications
-- Section-by-Section Refinement Prompts (detailed prompts for each landing page section)
-- Style Refinement Prompts (typography, colors, spacing, animations)
-- Alternative Hero Prompts (multiple variations)
-- Component Prompts for Remixing (reusable component specifications)
-- Support for light/dark mode (detailed theme specifications)
-- Final Checklist Prompt (comprehensive quality checklist)
-- Notes for Best Results (implementation tips and best practices)
+# [Product Name] Landing Page — v0.dev Prompt
 
-Follow the brand guidelines we created and ensure every section is thoroughly detailed.")
+## Full Prompt (Copy/Paste into v0.dev)
+
+Write a ~2000-3000 word complete prompt inside a code block that includes:
+- Opening: \"Create a high-fidelity, production-ready landing page for [product]...\"
+- Brand Positioning section (tagline, voice, target audience)
+- Design System section with:
+  * Colors: List 8-12 colors with names and exact hex codes
+  * Typography: Font family, then 5-6 text styles with pixel sizes, weights, tracking
+  * Spacing & Radii: Section padding, container width, border radius values, shadow specifications
+- Page Structure section detailing 8-12 sections:
+  * For each: Number, name (e.g., \"1. NAVIGATION (sticky):\"), then 5-10 bullet points with exact specifications
+  * Include specific copy examples, layout percentages, component sizes
+  * Specify colors by referencing the design system
+- Technical Requirements section (shadcn/ui, Tailwind, responsive breakpoints, accessibility)
+- Micro-Interactions section (specific animations with pixel/timing values)
+
+## Section-by-Section Refinement Prompts
+
+Create 8-10 subsections, each with a prompt in a code block:
+### [Section Name] Refinement
+\`\`\`
+Refine the [section] section:
+- [5-8 specific improvement bullets with exact specs]
+- [Include pixel values, colors, animation timings]
+- [Reference specific shadcn components or Tailwind classes]
+\`\`\`
+
+## Style Override Prompts
+
+Create 3-4 alternative style variations:
+### Make it More [Minimal/Bold/etc]
+\`\`\`
+[Complete prompt for style variation with 6-10 specific changes]
+\`\`\`
+
+## Alternative Full Prompts
+
+Create 2-3 complete alternative approaches:
+### [Variation Name] Version
+\`\`\`
+Create a [description] landing page for [product]...
+[Write a complete 300-500 word alternative prompt]
+\`\`\`
+
+## Component-Specific Prompts
+
+Create 4-6 reusable components:
+### [Component Name] Component
+\`\`\`
+Create a reusable [component] component:
+- Props: [list with types]
+- [8-12 specific styling/behavior bullets]
+- Hover/interaction states
+- Responsive behavior
+\`\`\`
+
+## Export & Iteration Notes
+
+Include:
+- Integration commands (bash code blocks with npx shadcn commands)
+- Common Fixes section (3-4 code block prompts for typical issues)
+- Best practices list
+
+CRITICAL REQUIREMENTS:
+- Output the ACTUAL markdown content, not a description
+- Every prompt must be inside a code block (\`\`\`)
+- Include specific values: pixel sizes, hex codes, percentages, timing values
+- Write realistic copy examples that match our brand voice
+- The Full Prompt should be detailed enough to generate a complete landing page
+- Reference our brand guidelines for colors, voice, and positioning
+- Research Aura.build for modern landing page patterns
+
+DO NOT write a summary. Write the complete, production-ready prompt kit that will be saved as an artifact and used to build the actual website.")
 
     log_tokens "7" "website-design-prompt" "$STEP7_OUTPUT"
     save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
