@@ -641,8 +641,9 @@ else
 fi
 
 # Save final output
-echo "💾 Saving complete brand development to brand-output.md..."
-cat > brand-output.md <<EOF
+echo "💾 Saving complete brand development to assets/brand-output.md..."
+mkdir -p assets
+cat > assets/brand-output.md <<EOF
 # Complete Brand Development Output
 
 ## Step 1: Target Profile
@@ -697,7 +698,7 @@ EOF
 echo "✅ Brand development pipeline complete!"
 echo ""
 echo "📄 Outputs saved:"
-echo "  - Consolidated: brand-output.md"
+echo "  - Consolidated: assets/brand-output.md"
 echo "  - Individual steps: ${ARTIFACTS_DIR}/"
 echo ""
 echo "🎨 Brand Assets (assets/):"
