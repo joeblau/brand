@@ -241,11 +241,20 @@ else
     echo "📦 Creating Remotion video project in video/ folder..."
     echo ""
 
-    # Create blank Remotion project without git
-    npx create-video@latest video --blank || {
+    # Create Remotion project with prompt-to-motion-graphics template
+    expect <<'EOF'
+spawn npx create-video@latest video --prompt-to-motion-graphics
+expect "Add agent skills?"
+send "n\r"
+expect "Open in Cursor?"
+send "n\r"
+expect eof
+EOF
+
+    if [ $? -ne 0 ]; then
         echo "❌ Remotion project creation failed."
         exit 1
-    }
+    fi
 
     # Navigate to video folder and set up additional tools
     cd video || {
