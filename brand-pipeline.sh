@@ -573,93 +573,37 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Create a comprehensive v0.dev prompt kit for building our landing page. This will be used in the next step to actually build the website.
+    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a prompt that I can put into v0.app that will allow me to create an amazingly rich visually appealing landing page.
 
-OUTPUT FORMAT - You must create a markdown document with these EXACT sections:
+The prompt should incorporate:
+- Design patterns and visual styles from popular Aura.build templates
+- Our brand guidelines and positioning from the previous steps
+- Specific, actionable instructions for v0.app
 
-# [Product Name] Landing Page — v0.dev Prompt
-
-## Full Prompt (Copy/Paste into v0.dev)
-
-Write a ~2000-3000 word complete prompt inside a code block that includes:
-- Opening: \"Create a high-fidelity, production-ready landing page for [product]...\"
-- Brand Positioning section (tagline, voice, target audience)
-- Design System section with:
-  * Colors: List 8-12 colors with names and exact hex codes
-  * Typography: Font family, then 5-6 text styles with pixel sizes, weights, tracking
-  * Spacing & Radii: Section padding, container width, border radius values, shadow specifications
-- Page Structure section detailing 8-12 sections:
-  * For each: Number, name (e.g., \"1. NAVIGATION (sticky):\"), then 5-10 bullet points with exact specifications
-  * Include specific copy examples, layout percentages, component sizes
-  * Specify colors by referencing the design system
-- Technical Requirements section (shadcn/ui, Tailwind, responsive breakpoints, accessibility)
-- Micro-Interactions section (specific animations with pixel/timing values)
-
-## Section-by-Section Refinement Prompts
-
-Create 8-10 subsections, each with a prompt in a code block:
-### [Section Name] Refinement
-\`\`\`
-Refine the [section] section:
-- [5-8 specific improvement bullets with exact specs]
-- [Include pixel values, colors, animation timings]
-- [Reference specific shadcn components or Tailwind classes]
-\`\`\`
-
-## Style Override Prompts
-
-Create 3-4 alternative style variations:
-### Make it More [Minimal/Bold/etc]
-\`\`\`
-[Complete prompt for style variation with 6-10 specific changes]
-\`\`\`
-
-## Alternative Full Prompts
-
-Create 2-3 complete alternative approaches:
-### [Variation Name] Version
-\`\`\`
-Create a [description] landing page for [product]...
-[Write a complete 300-500 word alternative prompt]
-\`\`\`
-
-## Component-Specific Prompts
-
-Create 4-6 reusable components:
-### [Component Name] Component
-\`\`\`
-Create a reusable [component] component:
-- Props: [list with types]
-- [8-12 specific styling/behavior bullets]
-- Hover/interaction states
-- Responsive behavior
-\`\`\`
-
-## Export & Iteration Notes
-
-Include:
-- Integration commands (bash code blocks with npx shadcn commands)
-- Common Fixes section (3-4 code block prompts for typical issues)
-- Best practices list
-
-CRITICAL REQUIREMENTS:
-- Output the ACTUAL markdown content, not a description
-- Every prompt must be inside a code block (\`\`\`)
-- Include specific values: pixel sizes, hex codes, percentages, timing values
-- Write realistic copy examples that match our brand voice
-- The Full Prompt should be detailed enough to generate a complete landing page
-- Reference our brand guidelines for colors, voice, and positioning
-- Research Aura.build for modern landing page patterns
-
-DO NOT write a summary. Write the complete, production-ready prompt kit that will be saved as an artifact and used to build the actual website.")
+Output a complete, ready-to-use prompt that I can copy and paste directly into v0.app.")
 
     log_tokens "7" "website-design-prompt" "$STEP7_OUTPUT"
+
+    # Save v0 prompt to assets for use in step 8
+    echo "💾 Saving v0.app prompt to assets/v0-landing-page-prompt.md..."
+    mkdir -p assets
+    echo "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
+    echo "✓ v0.app prompt saved to assets/"
+
     save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
     echo "✓ Step 7 complete"
     echo ""
 else
     echo "⏭️  Step 7: Loading from artifacts..."
     STEP7_OUTPUT=$(load_artifact "7" "website-design-prompt")
+
+    # Ensure assets file exists when resuming
+    if [ ! -f "assets/v0-landing-page-prompt.md" ]; then
+        echo "💾 Creating assets/v0-landing-page-prompt.md from artifacts..."
+        mkdir -p assets
+        echo "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
+    fi
+
     echo "✓ Step 7 loaded"
     echo ""
 fi
@@ -667,20 +611,37 @@ fi
 # Step 8: Build Site
 if should_run_step 8; then
     echo "Step 8/10: Building High Fidelity Website..."
-    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the FULL, DETAILED design prompt from Step 7 as your comprehensive guide - do not simplify or skip any sections.
+
+    # Load the v0.app prompt from assets
+    if [ ! -f "assets/v0-landing-page-prompt.md" ]; then
+        echo "❌ Error: assets/v0-landing-page-prompt.md not found"
+        echo "   Please run step 7 first or check that the file exists"
+        exit 1
+    fi
+
+    V0_PROMPT=$(cat "assets/v0-landing-page-prompt.md")
+
+    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory using this v0.app prompt as your guide:
+
+════════════════════════════════════════════════════════════════
+v0.app Landing Page Prompt:
+════════════════════════════════════════════════════════════════
+
+${V0_PROMPT}
+
+════════════════════════════════════════════════════════════════
 
 CRITICAL INSTRUCTIONS:
-- Reference the complete Step 7 website design prompt for all design specifications
+- Use the v0.app prompt above as your comprehensive design specification
 - Work in the website/ directory (a Next.js project with shadcn/ui)
 - Put all brand assets (logos, images, icons, etc.) in assets/ directory at the project root
 - Actually write/edit the code files - don't just describe what to do
-- Implement ALL sections from the detailed design prompt systematically
+- Implement ALL sections from the design prompt systematically
 - Use the Read, Edit, and Write tools to modify files in website/
 - Follow the brand guidelines we created
-- Implement all animations, interactions, and visual details specified in the design prompt
 - Create a high-fidelity, production-quality implementation, not a prototype
 
-Start by reading the existing website structure, then implement each section of the landing page according to the detailed specifications from Step 7.")
+Start by reading the existing website structure, then implement the landing page.")
 
     log_tokens "8" "build-site" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
@@ -711,12 +672,27 @@ Create detailed prompts for:
 - Asset requirements")
 
     log_tokens "9" "video-marketing-prompts" "$STEP9_OUTPUT"
+
+    # Save video prompts to assets for use in step 10
+    echo "💾 Saving video prompts to assets/video-prompts.md..."
+    mkdir -p assets
+    echo "$STEP9_OUTPUT" > "assets/video-prompts.md"
+    echo "✓ Video prompts saved to assets/"
+
     save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
     echo "✓ Step 9 complete"
     echo ""
 else
     echo "⏭️  Step 9: Loading from artifacts..."
     STEP9_OUTPUT=$(load_artifact "9" "video-marketing-prompts")
+
+    # Ensure assets file exists when resuming
+    if [ ! -f "assets/video-prompts.md" ]; then
+        echo "💾 Creating assets/video-prompts.md from artifacts..."
+        mkdir -p assets
+        echo "$STEP9_OUTPUT" > "assets/video-prompts.md"
+    fi
+
     echo "✓ Step 9 loaded"
     echo ""
 fi
@@ -724,9 +700,28 @@ fi
 # Step 10: Build Video
 if should_run_step 10; then
     echo "Step 10/10: Building High Quality Brand Video..."
-    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory. Use the video prompts from the previous step as your guide.
+
+    # Load the video prompts from assets
+    if [ ! -f "assets/video-prompts.md" ]; then
+        echo "❌ Error: assets/video-prompts.md not found"
+        echo "   Please run step 9 first or check that the file exists"
+        exit 1
+    fi
+
+    VIDEO_PROMPTS=$(cat "assets/video-prompts.md")
+
+    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory using these video prompts as your guide:
+
+════════════════════════════════════════════════════════════════
+Video Marketing Prompts:
+════════════════════════════════════════════════════════════════
+
+${VIDEO_PROMPTS}
+
+════════════════════════════════════════════════════════════════
 
 IMPORTANT:
+- Use the video prompts above as your comprehensive guide
 - Work in the video/ directory (a Remotion project with Tailwind CSS)
 - Use brand assets from the assets/ directory at the project root
 - Actually write/edit the code files - don't just describe what to do
@@ -825,6 +820,12 @@ echo ""
 echo "🎨 Brand Assets (assets/):"
 if [ -f "assets/brand-guidelines.pdf" ]; then
     ls -lh assets/brand-guidelines.pdf | awk '{print "  - "$9" ("$5")"}'
+fi
+if [ -f "assets/v0-landing-page-prompt.md" ]; then
+    ls -lh assets/v0-landing-page-prompt.md | awk '{print "  - "$9" ("$5") [v0.app prompt]"}'
+fi
+if [ -f "assets/video-prompts.md" ]; then
+    ls -lh assets/video-prompts.md | awk '{print "  - "$9" ("$5") [video prompts]"}'
 fi
 if [ -f "assets/brand-video.mp4" ]; then
     ls -lh assets/brand-video.mp4 | awk '{print "  - "$9" ("$5")"}'
