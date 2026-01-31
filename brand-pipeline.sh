@@ -570,6 +570,19 @@ Start by reading the existing video project structure, then implement each scene
     save_artifact "10" "build-video" "$STEP10_OUTPUT"
     echo "✓ Step 10 complete"
     echo ""
+
+    # Render the video
+    echo "🎬 Rendering brand video..."
+    mkdir -p assets
+    cd video
+    npx remotion render --output ../assets/brand-video.mp4
+    if [ $? -eq 0 ]; then
+        echo "✓ Video rendered to assets/brand-video.mp4"
+    else
+        echo "⚠️  Video rendering failed, but continuing..."
+    fi
+    cd ..
+    echo ""
 else
     echo "⏭️  Step 10: Loading from artifacts..."
     STEP10_OUTPUT=$(load_artifact "10" "build-video")
