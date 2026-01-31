@@ -521,6 +521,8 @@ if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
     STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
+    See @instructions/7.md for the framework example, but don't use it exactly. Follow the brand guidelines we created.
+
 Include:
 - How to Use This
 - Full Prompt (Copy This First)
@@ -528,6 +530,7 @@ Include:
 - Style Refinement Prompts
 - Alternative Hero Prompts
 - Component Prompts for Remixing
+- Support for light/dark mode
 - Final Checklist Prompt
 - Notes for Best Results")
 
