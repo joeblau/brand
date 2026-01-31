@@ -81,7 +81,13 @@ Research Aura.build and some of it's most popular templates. Create a prompt tha
 - Notes for Best Results
 ```
 
-8. Video
+8. Build Site 
+
+```
+Sequentially implement all of the steps in the @website/ project buildling a high fedilty website
+```
+
+9. Video
 
 ```
 Look at the remotion accounts and this sample project and come up with a series of prompts to create an amazing marketing video. I will be prompting these via claude code.
