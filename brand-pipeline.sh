@@ -58,25 +58,6 @@ fi
 
 echo ""
 
-# Build complete prompt in a file (context + new prompt)
-build_full_prompt() {
-    local prev_output="$1"
-    local new_prompt="$2"
-    local output_file="$3"
-
-    {
-        printf 'Previous context:\n'
-        printf '%s' "$prev_output"
-        printf '\n\n'
-        printf '%s' "$new_prompt"
-    } > "$output_file"
-}
-
-# Temp files for passing context between steps
-CONTEXT_TEMP_FILE="/tmp/brand-pipeline-context-$$.txt"
-PROMPT_TEMP_FILE="/tmp/brand-pipeline-prompt-$$.txt"
-trap "rm -f $CONTEXT_TEMP_FILE $PROMPT_TEMP_FILE" EXIT
-
 # Save step output to markdown file
 save_artifact() {
     local step_num="$1"
@@ -114,7 +95,7 @@ should_run_step() {
 }
 
 # Track token usage (estimates based on character count)
-TOTAL_ESTIMATED_INPUT_TOKENS=0
+# Note: Only tracking output tokens; input tokens managed by --continue
 TOTAL_ESTIMATED_OUTPUT_TOKENS=0
 declare -a STEP_TOKENS
 
@@ -125,28 +106,24 @@ estimate_tokens() {
     echo $((char_count / 4))
 }
 
-# Log token usage for a step
+# Log token usage for a step (output only, input managed by --continue)
 log_tokens() {
     local step_num="$1"
     local step_name="$2"
-    local input_text="$3"
-    local output_text="$4"
+    local output_text="$3"
 
-    local input_tokens=$(estimate_tokens "$input_text")
     local output_tokens=$(estimate_tokens "$output_text")
-    local total_tokens=$((input_tokens + output_tokens))
 
-    TOTAL_ESTIMATED_INPUT_TOKENS=$((TOTAL_ESTIMATED_INPUT_TOKENS + input_tokens))
     TOTAL_ESTIMATED_OUTPUT_TOKENS=$((TOTAL_ESTIMATED_OUTPUT_TOKENS + output_tokens))
 
-    local step_info="Step $step_num ($step_name): Input≈$input_tokens, Output≈$output_tokens, Total≈$total_tokens"
+    local step_info="Step $step_num ($step_name): Output≈$output_tokens"
     STEP_TOKENS+=("$step_info")
 
     # Log to file
     echo "$step_info" >> "$TOKEN_LOG"
 
     # Display to console
-    echo "📊 Estimated tokens: ~$total_tokens (Input: ~$input_tokens, Output: ~$output_tokens)"
+    echo "📊 Estimated output tokens: ~$output_tokens"
 }
 
 # Check for Node.js and npm
@@ -358,7 +335,7 @@ echo ""
 # Step 1: Target Profile
 if should_run_step 1; then
     echo "Step 1/9: Creating Target Profile..."
-    STEP1_OUTPUT=$(claude -p "$(cat <<EOF
+    STEP1_OUTPUT=$(claude -p --model claude-opus-4-5-20250514 "$(cat <<EOF
 We're going to build the following product/service. Create a brand target profile following the brand framework shown in @instructions/1.png
 
 USER VISION:
@@ -374,7 +351,7 @@ Create a comprehensive target profile based on the user's vision above.
 EOF
 )")
 
-    log_tokens "1" "target-profile" "$USER_VISION" "$STEP1_OUTPUT"
+    log_tokens "1" "target-profile" "$STEP1_OUTPUT"
     save_artifact "1" "target-profile" "$STEP1_OUTPUT"
     echo "✓ Step 1 complete"
     echo ""
@@ -388,12 +365,11 @@ fi
 # Step 2: Product Features
 if should_run_step 2; then
     echo "Step 2/9: Defining Product Features..."
-    build_full_prompt "$STEP1_OUTPUT" "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    STEP2_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
-Think comprehensively about what features would delight users and differentiate the product." "$PROMPT_TEMP_FILE"
-    STEP2_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+Think comprehensively about what features would delight users and differentiate the product.")
 
-    log_tokens "2" "product-features" "$STEP1_OUTPUT" "$STEP2_OUTPUT"
+    log_tokens "2" "product-features" "$STEP2_OUTPUT"
     save_artifact "2" "product-features" "$STEP2_OUTPUT"
     echo "✓ Step 2 complete"
     echo ""
@@ -407,12 +383,11 @@ fi
 # Step 3: Features to Benefits
 if should_run_step 3; then
     echo "Step 3/9: Converting Features to Benefits..."
-    build_full_prompt "$STEP2_OUTPUT" "Next, turn our features into benefits following the framework in @instructions/3.png
+    STEP3_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Next, turn our features into benefits following the framework in @instructions/3.png
 
-For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality." "$PROMPT_TEMP_FILE"
-    STEP3_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.")
 
-    log_tokens "3" "features-to-benefits" "$STEP2_OUTPUT" "$STEP3_OUTPUT"
+    log_tokens "3" "features-to-benefits" "$STEP3_OUTPUT"
     save_artifact "3" "features-to-benefits" "$STEP3_OUTPUT"
     echo "✓ Step 3 complete"
     echo ""
@@ -426,12 +401,11 @@ fi
 # Step 4: Winning Zone
 if should_run_step 4; then
     echo "Step 4/9: Mapping Winning Zone..."
-    build_full_prompt "$STEP3_OUTPUT" "Our next step is to map out our winning zone following the framework in @instructions/4.png
+    STEP4_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Our next step is to map out our winning zone following the framework in @instructions/4.png
 
-How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?" "$PROMPT_TEMP_FILE"
-    STEP4_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?")
 
-    log_tokens "4" "winning-zone" "$STEP3_OUTPUT" "$STEP4_OUTPUT"
+    log_tokens "4" "winning-zone" "$STEP4_OUTPUT"
     save_artifact "4" "winning-zone" "$STEP4_OUTPUT"
     echo "✓ Step 4 complete"
     echo ""
@@ -445,12 +419,11 @@ fi
 # Step 5: Brand Persona
 if should_run_step 5; then
     echo "Step 5/9: Defining Brand Persona..."
-    build_full_prompt "$STEP4_OUTPUT" "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    STEP5_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
-Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning." "$PROMPT_TEMP_FILE"
-    STEP5_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.")
 
-    log_tokens "5" "brand-persona" "$STEP4_OUTPUT" "$STEP5_OUTPUT"
+    log_tokens "5" "brand-persona" "$STEP5_OUTPUT"
     save_artifact "5" "brand-persona" "$STEP5_OUTPUT"
     echo "✓ Step 5 complete"
     echo ""
@@ -464,14 +437,13 @@ fi
 # Step 6: Brand Guidelines
 if should_run_step 6; then
     echo "Step 6/9: Creating Brand Guidelines..."
-    build_full_prompt "$STEP5_OUTPUT" "Translate this into comprehensive brand guidelines, including:
+    STEP6_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
-- Key messaging pillars" "$PROMPT_TEMP_FILE"
-    STEP6_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+- Key messaging pillars")
 
-    log_tokens "6" "brand-guidelines" "$STEP5_OUTPUT" "$STEP6_OUTPUT"
+    log_tokens "6" "brand-guidelines" "$STEP6_OUTPUT"
     save_artifact "6" "brand-guidelines" "$STEP6_OUTPUT"
 
     # Generate PDF for brand guidelines
@@ -500,7 +472,7 @@ fi
 # Step 7: Website Design Prompt
 if should_run_step 7; then
     echo "Step 7/9: Generating Website Design Prompt..."
-    build_full_prompt "$STEP6_OUTPUT" "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page. Each section should be a separate prompt with extremely detailed instructions for designing the section.
+    STEP7_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
 Include:
 - How to Use This
@@ -510,10 +482,9 @@ Include:
 - Alternative Hero Prompts
 - Component Prompts for Remixing
 - Final Checklist Prompt
-- Notes for Best Results" "$PROMPT_TEMP_FILE"
-    STEP7_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+- Notes for Best Results")
 
-    log_tokens "7" "website-design-prompt" "$STEP6_OUTPUT" "$STEP7_OUTPUT"
+    log_tokens "7" "website-design-prompt" "$STEP7_OUTPUT"
     save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
     echo "✓ Step 7 complete"
     echo ""
@@ -527,12 +498,11 @@ fi
 # Step 8: Build Site
 if should_run_step 8; then
     echo "Step 8/9: Building High Fidelity Website..."
-    build_full_prompt "$STEP7_OUTPUT" "Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
+    STEP8_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
 
-Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code." "$PROMPT_TEMP_FILE"
-    STEP8_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code.")
 
-    log_tokens "8" "build-site" "$STEP7_OUTPUT" "$STEP8_OUTPUT"
+    log_tokens "8" "build-site" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
     echo "✓ Step 8 complete"
     echo ""
@@ -546,7 +516,7 @@ fi
 # Step 9: Video Marketing Prompt
 if should_run_step 9; then
     echo "Step 9/9: Creating Video Marketing Prompts..."
-    build_full_prompt "$STEP8_OUTPUT" "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    STEP9_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
@@ -558,10 +528,9 @@ Create detailed prompts for:
 - Scene-by-scene breakdown
 - Animation specifications
 - Code structure for Remotion
-- Asset requirements" "$PROMPT_TEMP_FILE"
-    STEP9_OUTPUT=$(claude -p "$(cat "$PROMPT_TEMP_FILE")")
+- Asset requirements")
 
-    log_tokens "9" "video-marketing-prompts" "$STEP8_OUTPUT" "$STEP9_OUTPUT"
+    log_tokens "9" "video-marketing-prompts" "$STEP9_OUTPUT"
     save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
     echo "✓ Step 9 complete"
     echo ""
@@ -634,7 +603,7 @@ if [ -f "${ARTIFACTS_DIR}/step6-brand-guidelines.pdf" ]; then
 fi
 
 # Display token usage summary
-if [ "$TOTAL_ESTIMATED_INPUT_TOKENS" != "0" ] || [ "$TOTAL_ESTIMATED_OUTPUT_TOKENS" != "0" ]; then
+if [ "$TOTAL_ESTIMATED_OUTPUT_TOKENS" != "0" ]; then
     echo ""
     echo "📊 Token Usage Summary (Estimated):"
     echo "════════════════════════════════════════════════════════════════"
@@ -642,12 +611,11 @@ if [ "$TOTAL_ESTIMATED_INPUT_TOKENS" != "0" ] || [ "$TOTAL_ESTIMATED_OUTPUT_TOKE
         echo "  $step_info"
     done
     echo "────────────────────────────────────────────────────────────────"
-    echo "  Total Input Tokens:  ~$TOTAL_ESTIMATED_INPUT_TOKENS"
     echo "  Total Output Tokens: ~$TOTAL_ESTIMATED_OUTPUT_TOKENS"
-    echo "  Grand Total:         ~$((TOTAL_ESTIMATED_INPUT_TOKENS + TOTAL_ESTIMATED_OUTPUT_TOKENS))"
     echo "════════════════════════════════════════════════════════════════"
     echo ""
     echo "Note: Token estimates use ~4 chars/token approximation."
+    echo "      Input tokens managed by --continue are not tracked here."
     echo "Detailed log saved to: $TOKEN_LOG"
 
     # Save summary to log file
@@ -655,9 +623,8 @@ if [ "$TOTAL_ESTIMATED_INPUT_TOKENS" != "0" ] || [ "$TOTAL_ESTIMATED_OUTPUT_TOKE
     echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
     echo "SUMMARY" >> "$TOKEN_LOG"
     echo "═══════════════════════════════════════════════════════" >> "$TOKEN_LOG"
-    echo "Total Estimated Input Tokens:  $TOTAL_ESTIMATED_INPUT_TOKENS" >> "$TOKEN_LOG"
     echo "Total Estimated Output Tokens: $TOTAL_ESTIMATED_OUTPUT_TOKENS" >> "$TOKEN_LOG"
-    echo "Grand Total:                   $((TOTAL_ESTIMATED_INPUT_TOKENS + TOTAL_ESTIMATED_OUTPUT_TOKENS))" >> "$TOKEN_LOG"
     echo "" >> "$TOKEN_LOG"
     echo "Estimation method: ~4 characters per token" >> "$TOKEN_LOG"
+    echo "Note: Input tokens managed by --continue are not tracked" >> "$TOKEN_LOG"
 fi
