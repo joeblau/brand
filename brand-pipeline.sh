@@ -22,7 +22,7 @@ if ls ${ARTIFACTS_DIR}/step*.md 1> /dev/null 2>&1; then
     echo ""
 
     # Find the last completed step
-    LAST_STEP=$(ls -1 ${ARTIFACTS_DIR}/step*.md 2>/dev/null | sed 's/.*step\([0-9]\).*/\1/' | sort -n | tail -1)
+    LAST_STEP=$(ls -1 ${ARTIFACTS_DIR}/step*.md 2>/dev/null | sed 's/.*step\([0-9][0-9]*\).*/\1/' | sort -n | tail -1)
 
     if [ -n "$LAST_STEP" ]; then
         echo "Last completed step: $LAST_STEP"
@@ -334,8 +334,8 @@ echo ""
 
 # Step 1: Target Profile
 if should_run_step 1; then
-    echo "Step 1/9: Creating Target Profile..."
-    STEP1_OUTPUT=$(claude -p --model claude-opus-4-5-20250514 "$(cat <<EOF
+    echo "Step 1/10: Creating Target Profile..."
+    STEP1_OUTPUT=$(claude -p --model claude-opus-4-5-20251101 "$(cat <<EOF
 We're going to build the following product/service. Create a brand target profile following the brand framework shown in @instructions/1.png
 
 USER VISION:
@@ -364,8 +364,8 @@ fi
 
 # Step 2: Product Features
 if should_run_step 2; then
-    echo "Step 2/9: Defining Product Features..."
-    STEP2_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    echo "Step 2/10: Defining Product Features..."
+    STEP2_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.")
 
@@ -382,8 +382,8 @@ fi
 
 # Step 3: Features to Benefits
 if should_run_step 3; then
-    echo "Step 3/9: Converting Features to Benefits..."
-    STEP3_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Next, turn our features into benefits following the framework in @instructions/3.png
+    echo "Step 3/10: Converting Features to Benefits..."
+    STEP3_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.")
 
@@ -400,8 +400,8 @@ fi
 
 # Step 4: Winning Zone
 if should_run_step 4; then
-    echo "Step 4/9: Mapping Winning Zone..."
-    STEP4_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Our next step is to map out our winning zone following the framework in @instructions/4.png
+    echo "Step 4/10: Mapping Winning Zone..."
+    STEP4_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?")
 
@@ -418,8 +418,8 @@ fi
 
 # Step 5: Brand Persona
 if should_run_step 5; then
-    echo "Step 5/9: Defining Brand Persona..."
-    STEP5_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    echo "Step 5/10: Defining Brand Persona..."
+    STEP5_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
 Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.")
 
@@ -436,8 +436,8 @@ fi
 
 # Step 6: Brand Guidelines
 if should_run_step 6; then
-    echo "Step 6/9: Creating Brand Guidelines..."
-    STEP6_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Translate this into comprehensive brand guidelines, including:
+    echo "Step 6/10: Creating Brand Guidelines..."
+    STEP6_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
@@ -471,8 +471,8 @@ fi
 
 # Step 7: Website Design Prompt
 if should_run_step 7; then
-    echo "Step 7/9: Generating Website Design Prompt..."
-    STEP7_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
+    echo "Step 7/10: Generating Website Design Prompt..."
+    STEP7_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Research Aura.build and some of its most popular templates. Create a comprehensive prompt that can be used in v0.app to create an amazingly rich, visually appealing landing page.
 
 Include:
 - How to Use This
@@ -497,10 +497,19 @@ fi
 
 # Step 8: Build Site
 if should_run_step 8; then
-    echo "Step 8/9: Building High Fidelity Website..."
-    STEP8_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Sequentially implement all of the steps in the website project, building a high fidelity website based on the brand guidelines and design prompt we've created.
+    echo "Step 8/10: Building High Fidelity Website..."
+    STEP8_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Now implement the website design in the website/ directory. Use the design prompt from the previous step as your guide.
 
-Review the website requirements and create a comprehensive implementation plan that brings the brand to life through code.")
+IMPORTANT:
+- Work in the website/ directory (a Next.js project with shadcn/ui)
+- Put all brand assets (logos, images, icons, etc.) in assets/ directory at the project root
+- Actually write/edit the code files - don't just describe what to do
+- Implement all sections from the design prompt systematically
+- Use the Read, Edit, and Write tools to modify files in website/
+- Follow the brand guidelines we created
+- Create a high-fidelity implementation, not a prototype
+
+Start by reading the existing website structure, then implement each section of the landing page.")
 
     log_tokens "8" "build-site" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
@@ -515,8 +524,8 @@ fi
 
 # Step 9: Video Marketing Prompt
 if should_run_step 9; then
-    echo "Step 9/9: Creating Video Marketing Prompts..."
-    STEP9_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20250514 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    echo "Step 9/10: Creating Video Marketing Prompts..."
+    STEP9_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
@@ -538,6 +547,33 @@ else
     echo "⏭️  Step 9: Loading from artifacts..."
     STEP9_OUTPUT=$(load_artifact "9" "video-marketing-prompts")
     echo "✓ Step 9 loaded"
+    echo ""
+fi
+
+# Step 10: Build Video
+if should_run_step 10; then
+    echo "Step 10/10: Building High Quality Brand Video..."
+    STEP10_OUTPUT=$(claude -p --continue --model claude-opus-4-5-20251101 "Now implement the marketing video in the video/ directory. Use the video prompts from the previous step as your guide.
+
+IMPORTANT:
+- Work in the video/ directory (a Remotion project with Tailwind CSS)
+- Use brand assets from the assets/ directory at the project root
+- Actually write/edit the code files - don't just describe what to do
+- Implement all scenes from the video prompts systematically
+- Use the Read, Edit, and Write tools to modify files in video/
+- Follow the brand guidelines we created
+- Create high-quality animations and transitions
+
+Start by reading the existing video project structure, then implement each scene of the marketing video.")
+
+    log_tokens "10" "build-video" "$STEP10_OUTPUT"
+    save_artifact "10" "build-video" "$STEP10_OUTPUT"
+    echo "✓ Step 10 complete"
+    echo ""
+else
+    echo "⏭️  Step 10: Loading from artifacts..."
+    STEP10_OUTPUT=$(load_artifact "10" "build-video")
+    echo "✓ Step 10 loaded"
     echo ""
 fi
 
@@ -588,6 +624,11 @@ ${STEP8_OUTPUT}
 
 ## Step 9: Video Marketing Prompts
 ${STEP9_OUTPUT}
+
+---
+
+## Step 10: Build Video
+${STEP10_OUTPUT}
 EOF
 
 echo "✅ Brand development pipeline complete!"
