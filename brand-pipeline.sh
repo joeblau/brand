@@ -184,6 +184,15 @@ if [ -d "website" ]; then
     echo "✓ website/ folder already exists, skipping creation"
     echo ""
 else
+    # Open the shadcn UI in the user's default browser before proceeding
+    if command -v open &> /dev/null; then
+        open "https://ui.shadcn.com/create"
+    elif command -v xdg-open &> /dev/null; then
+        xdg-open "https://ui.shadcn.com/create"
+    else
+        echo "⚠️  Please manually open https://ui.shadcn.com/create in your browser."
+    fi
+
     echo "🚀 Project Setup"
     echo "════════════════════════════════════════════════════════════════"
     echo ""
