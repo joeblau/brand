@@ -50,6 +50,15 @@ else
     echo "✓ npm $(npm --version) is installed"
 fi
 
+# Check for Claude CLI
+if ! command -v claude &> /dev/null; then
+    echo "❌ Claude CLI is not installed"
+    echo "⚠️  Please install Claude CLI first: https://claude.ai/download"
+    exit 1
+else
+    echo "✓ Claude CLI is installed"
+fi
+
 echo ""
 
 # Create shadcn project
@@ -108,16 +117,73 @@ if [ -d "video" ]; then
     rm -rf video
 fi
 
-# Create Remotion project
-npx create-video@latest video
-
-if [ $? -ne 0 ]; then
+# Create blank Remotion project without git
+# Note: Some flags may prompt for user input if not supported
+npx create-video@latest video --template blank || {
     echo "❌ Remotion project creation failed."
     exit 1
+}
+
+# Navigate to video folder and set up additional tools
+cd video || {
+    echo "❌ Failed to enter video directory"
+    exit 1
+}
+
+# Install Tailwind CSS
+echo "📦 Installing Tailwind CSS..."
+npm install -D tailwindcss postcss autoprefixer || {
+    echo "❌ Failed to install Tailwind CSS"
+    cd ..
+    exit 1
+}
+
+npx tailwindcss init -p || {
+    echo "⚠️  Tailwind init failed, but continuing..."
+}
+
+# Create Tailwind config
+cat > tailwind.config.js <<'TAILWIND_EOF'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+TAILWIND_EOF
+
+# Add Tailwind directives to a global CSS file
+mkdir -p src/styles
+cat > src/styles/globals.css <<'CSS_EOF'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+CSS_EOF
+
+# Create .clawdbot directory and symlink agent skills
+echo "🔗 Setting up agent skills..."
+mkdir -p .clawdbot
+
+# Symlink recommended agent skills from parent or home directory
+# Users can customize this based on their agent skills location
+if [ -d "$HOME/.clawdbot/skills" ]; then
+    ln -s "$HOME/.clawdbot/skills" .clawdbot/skills
+    echo "✓ Symlinked agent skills from ~/.clawdbot/skills"
+else
+    echo "⚠️  No agent skills found at ~/.clawdbot/skills"
+    echo "   You can manually create symlinks later"
 fi
+
+cd ..
 
 echo ""
 echo "✓ Remotion project created successfully in video/ folder!"
+echo "✓ Tailwind CSS configured"
+echo "✓ Agent skills setup complete"
 echo ""
 
 # Collect user input for brand development
