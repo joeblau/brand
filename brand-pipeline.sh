@@ -21,11 +21,20 @@ if ls ${ARTIFACTS_DIR}/step*.md 1> /dev/null 2>&1; then
     done
     echo ""
 
-    # Find the last completed step
-    LAST_STEP=$(ls -1 ${ARTIFACTS_DIR}/step*.md 2>/dev/null | sed 's/.*step\([0-9][0-9]*\).*/\1/' | sort -n | tail -1)
+    # Find the last CONTIGUOUS completed step (detect gaps)
+    # e.g., if steps 1-6 exist but 7 is missing and 8 exists, resume from 7 not 9
+    LAST_STEP=0
+    for i in 1 2 3 4 5 6 7 8 9 10; do
+        # Check if any artifact for this step number exists
+        if ls ${ARTIFACTS_DIR}/step${i}-*.md 1> /dev/null 2>&1; then
+            LAST_STEP=$i
+        else
+            break  # Found a gap, stop here
+        fi
+    done
 
-    if [ -n "$LAST_STEP" ]; then
-        echo "Last completed step: $LAST_STEP"
+    if [ "$LAST_STEP" -gt 0 ]; then
+        echo "Last contiguous completed step: $LAST_STEP"
         read -p "Resume from step $((LAST_STEP + 1))? (y/n, default: y): " RESUME_CHOICE
         RESUME_CHOICE=${RESUME_CHOICE:-y}
 
@@ -58,18 +67,64 @@ fi
 
 echo ""
 
+# Validate that Claude output is genuine content, not stale conversation leakage
+validate_output() {
+    local step_num="$1"
+    local step_name="$2"
+    local content="$3"
+
+    # Check for known contamination patterns (our debugging notes leaking through)
+    local contamination_patterns=(
+        "Status: All Fixed"
+        "Bugs fixed in"
+        "brand-pipeline.sh"
+        "Corrupted files cleaned"
+        "run_claude.*helper"
+        "unquoted heredoc"
+        "Summary of All Fixes"
+        "Root Cause.*--continue"
+    )
+
+    for pattern in "${contamination_patterns[@]}"; do
+        if echo "$content" | head -20 | grep -qi "$pattern"; then
+            echo "❌ ERROR: Step $step_num ($step_name) output appears contaminated!"
+            echo "   Found pattern: $pattern"
+            echo "   This looks like stale conversation leakage, not genuine output."
+            echo "   First 3 lines of output:"
+            echo "$content" | head -3 | sed 's/^/   > /'
+            echo ""
+            echo "   Skipping save. Re-run the pipeline to regenerate this step."
+            return 1
+        fi
+    done
+
+    # Check minimum content length (a real step output should be substantial)
+    local content_len=${#content}
+    if [ "$content_len" -lt 200 ]; then
+        echo "⚠️  WARNING: Step $step_num ($step_name) output is very short ($content_len chars)"
+        echo "   This may indicate truncated or incorrect output."
+        echo "   First 3 lines:"
+        echo "$content" | head -3 | sed 's/^/   > /'
+    fi
+
+    return 0
+}
+
 # Save step output to markdown file
+# Uses printf to avoid shell expansion of backticks, $vars, etc. in content
 save_artifact() {
     local step_num="$1"
     local step_name="$2"
     local content="$3"
     local filename="${ARTIFACTS_DIR}/step${step_num}-${step_name}.md"
 
-    cat > "$filename" <<EOF
-# Step ${step_num}: ${step_name}
+    # Validate before saving
+    if ! validate_output "$step_num" "$step_name" "$content"; then
+        echo "🛑 Artifact NOT saved for step $step_num due to validation failure."
+        return 1
+    fi
 
-${content}
-EOF
+    printf '# Step %s: %s\n\n%s\n' "$step_num" "$step_name" "$content" > "$filename"
     echo "💾 Saved: $filename"
 }
 
@@ -220,6 +275,22 @@ END OF RESTORED CONTEXT
 should_run_step() {
     local step_num="$1"
     [ "$step_num" -gt "$RESUME_FROM" ]
+}
+
+# Run Claude with correct --continue behavior
+# When resuming, RESUME_CONTEXT provides all needed context so --continue is SKIPPED
+# to avoid picking up a stale conversation. On fresh runs, --continue chains naturally.
+run_claude() {
+    local resume_context="$1"
+    local prompt="$2"
+
+    if [ -n "$resume_context" ]; then
+        # Resuming: full context provided, fresh conversation (no --continue)
+        claude -p --permission-mode bypassPermissions --model claude-opus-4-5-20251101 "${resume_context}${prompt}"
+    else
+        # Fresh run: chain from previous step's conversation
+        claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "$prompt"
+    fi
 }
 
 # Track token usage (estimates based on character count)
@@ -578,7 +649,7 @@ fi
 if should_run_step 2; then
     echo "Step 2/10: Defining Product Features..."
     RESUME_CONTEXT=$(build_resume_context 2)
-    STEP2_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
+    STEP2_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Based on this target profile, list all of the potential product features that would be amazing for a consumer-based AI service following the framework in @instructions/2.png
 
 Think comprehensively about what features would delight users and differentiate the product.")
 
@@ -597,7 +668,7 @@ fi
 if should_run_step 3; then
     echo "Step 3/10: Converting Features to Benefits..."
     RESUME_CONTEXT=$(build_resume_context 3)
-    STEP3_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Next, turn our features into benefits following the framework in @instructions/3.png
+    STEP3_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Next, turn our features into benefits following the framework in @instructions/3.png
 
 For each feature, explain the tangible benefit it provides to the user. Focus on emotional and practical outcomes, not just functionality.")
 
@@ -616,7 +687,7 @@ fi
 if should_run_step 4; then
     echo "Step 4/10: Mapping Winning Zone..."
     RESUME_CONTEXT=$(build_resume_context 4)
-    STEP4_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Our next step is to map out our winning zone following the framework in @instructions/4.png
+    STEP4_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Our next step is to map out our winning zone following the framework in @instructions/4.png
 
 How will our AI service outperform everyone else? What is our unique positioning and competitive advantage in the market?")
 
@@ -635,7 +706,7 @@ fi
 if should_run_step 5; then
     echo "Step 5/10: Defining Brand Persona..."
     RESUME_CONTEXT=$(build_resume_context 5)
-    STEP5_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
+    STEP5_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Now based on this, let's choose a primary and secondary brand persona following the framework in @instructions/5.png
 
 Consider brand archetypes (e.g., Hero, Sage, Explorer, Creator, etc.) and explain why these personas align with our positioning.")
 
@@ -654,7 +725,7 @@ fi
 if should_run_step 6; then
     echo "Step 6/10: Creating Brand Guidelines..."
     RESUME_CONTEXT=$(build_resume_context 6)
-    STEP6_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Translate this into comprehensive brand guidelines, including:
+    STEP6_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Translate this into comprehensive brand guidelines, including:
 - Tone of voice with specific examples
 - Visual direction and design principles
 - Do's and don'ts for brand communication
@@ -707,25 +778,49 @@ fi
 if should_run_step 7; then
     echo "Step 7/10: Generating Website Design Prompt..."
     RESUME_CONTEXT=$(build_resume_context 7)
-    STEP7_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Research Aura.build and some of its most popular templates. Create a prompt that I can put into v0.app that will allow me to create an amazingly rich visually appealing landing page.
+    STEP7_RAW_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Research Aura.build and some of its most popular templates. Create a comprehensive v0.app prompt document for building an amazingly rich, visually appealing landing page.
 
-The prompt should incorporate:
+The prompt document should incorporate:
 - Design patterns and visual styles from popular Aura.build templates
 - Our brand guidelines and positioning from the previous steps
 - Specific, actionable instructions for v0.app
+- Multiple sections: full prompt, refinement prompts, style variations, component library
+- Similar structure to professional v0 prompt kits
 
-Output a complete, ready-to-use prompt that I can copy and paste directly into v0.app.")
+CRITICAL: Format your response EXACTLY like this:
+
+<v0_prompt_document>
+[Your comprehensive v0.app prompt document here - start with a markdown heading like '# Product Name Landing Page — v0 Prompt Kit' and include all sections with actual copyable prompts in code blocks, refinement prompts, style variations, etc.]
+</v0_prompt_document>
+
+The content between the XML tags should be a complete, professional v0 prompt document - markdown formatted, with clear sections, actual prompts in code blocks, and usage instructions. Model it after comprehensive prompt kits.
+
+Do NOT add any conversational text outside the XML tags. Just the tags with the document inside.")
+
+    # Extract content between XML tags
+    if echo "$STEP7_RAW_OUTPUT" | grep -q "<v0_prompt_document>"; then
+        STEP7_OUTPUT=$(echo "$STEP7_RAW_OUTPUT" | sed -n '/<v0_prompt_document>/,/<\/v0_prompt_document>/p' | sed '1d;$d')
+        echo "✓ Extracted v0 prompt from XML tags"
+    else
+        echo "⚠️  Warning: No XML tags found, using full output"
+        STEP7_OUTPUT="$STEP7_RAW_OUTPUT"
+    fi
 
     log_tokens "7" "website-design-prompt" "$STEP7_OUTPUT"
 
-    # Save v0 prompt to assets for use in step 8
-    echo "💾 Saving v0.app prompt to assets/v0-landing-page-prompt.md..."
-    mkdir -p assets
-    echo "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
-    echo "✓ v0.app prompt saved to assets/"
-
-    save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
-    echo "✓ Step 7 complete"
+    # Validate and save
+    if validate_output "7" "website-design-prompt" "$STEP7_OUTPUT"; then
+        echo "💾 Saving v0.app prompt to assets/v0-landing-page-prompt.md..."
+        mkdir -p assets
+        printf '%s\n' "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
+        echo "✓ v0.app prompt saved to assets/"
+        save_artifact "7" "website-design-prompt" "$STEP7_OUTPUT"
+        echo "✓ Step 7 complete"
+    else
+        echo "🛑 Step 7 failed validation - artifacts NOT saved"
+        echo "   Re-run the pipeline to regenerate step 7"
+        exit 1
+    fi
     echo ""
 else
     echo "⏭️  Step 7: Loading from artifacts..."
@@ -735,7 +830,7 @@ else
     if [ ! -f "assets/v0-landing-page-prompt.md" ]; then
         echo "💾 Creating assets/v0-landing-page-prompt.md from artifacts..."
         mkdir -p assets
-        echo "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
+        printf '%s\n' "$STEP7_OUTPUT" > "assets/v0-landing-page-prompt.md"
     fi
 
     echo "✓ Step 7 loaded"
@@ -756,7 +851,7 @@ if should_run_step 8; then
     V0_PROMPT=$(cat "assets/v0-landing-page-prompt.md")
     RESUME_CONTEXT=$(build_resume_context 8)
 
-    STEP8_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now implement the website design in the website/ directory using this v0.app prompt as your guide:
+    STEP8_PROMPT="Now implement the website design in the website/ directory using this v0.app prompt as your guide:
 
 ════════════════════════════════════════════════════════════════
 v0.app Landing Page Prompt:
@@ -776,7 +871,9 @@ CRITICAL INSTRUCTIONS:
 - Follow the brand guidelines we created
 - Create a high-fidelity, production-quality implementation, not a prototype
 
-Start by reading the existing website structure, then implement the landing page.")
+Start by reading the existing website structure, then implement the landing page."
+
+    STEP8_OUTPUT=$(run_claude "$RESUME_CONTEXT" "$STEP8_PROMPT")
 
     log_tokens "8" "build-site" "$STEP8_OUTPUT"
     save_artifact "8" "build-site" "$STEP8_OUTPUT"
@@ -793,30 +890,55 @@ fi
 if should_run_step 9; then
     echo "Step 9/10: Creating Video Marketing Prompts..."
     RESUME_CONTEXT=$(build_resume_context 9)
-    STEP9_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Look at the Remotion framework and come up with a series of prompts to create an amazing marketing video using Claude Code.
+    STEP9_RAW_OUTPUT=$(run_claude "$RESUME_CONTEXT" "Look at the Remotion framework and create a comprehensive prompt document for building an amazing marketing video using Claude Code.
 
 References:
 - https://x.com/Remotion/status/2013626968386765291
 - https://gist.github.com/JonnyBurger/5b801182176f1b76447901fbeb5a84ac
 - https://www.remotion.dev
 
-Create detailed prompts for:
+The prompt document should include:
 - Video concept and storyboard
-- Scene-by-scene breakdown
+- Scene-by-scene breakdown with technical details
 - Animation specifications
 - Code structure for Remotion
-- Asset requirements")
+- Asset requirements
+- Multiple prompt variations for different approaches
+
+CRITICAL: Format your response EXACTLY like this:
+
+<video_prompt_document>
+[Your comprehensive video prompt document here - start with a markdown heading like '# Product Name Marketing Video — Remotion Prompt Kit' and include all sections with detailed scene descriptions, animation specs, code structure, etc.]
+</video_prompt_document>
+
+The content between the XML tags should be a complete, professional video prompt document - markdown formatted, with clear sections for each scene, technical specifications, and implementation guidance.
+
+Do NOT add any conversational text outside the XML tags. Just the tags with the document inside.")
+
+    # Extract content between XML tags
+    if echo "$STEP9_RAW_OUTPUT" | grep -q "<video_prompt_document>"; then
+        STEP9_OUTPUT=$(echo "$STEP9_RAW_OUTPUT" | sed -n '/<video_prompt_document>/,/<\/video_prompt_document>/p' | sed '1d;$d')
+        echo "✓ Extracted video prompts from XML tags"
+    else
+        echo "⚠️  Warning: No XML tags found, using full output"
+        STEP9_OUTPUT="$STEP9_RAW_OUTPUT"
+    fi
 
     log_tokens "9" "video-marketing-prompts" "$STEP9_OUTPUT"
 
-    # Save video prompts to assets for use in step 10
-    echo "💾 Saving video prompts to assets/video-prompts.md..."
-    mkdir -p assets
-    echo "$STEP9_OUTPUT" > "assets/video-prompts.md"
-    echo "✓ Video prompts saved to assets/"
-
-    save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
-    echo "✓ Step 9 complete"
+    # Validate and save
+    if validate_output "9" "video-marketing-prompts" "$STEP9_OUTPUT"; then
+        echo "💾 Saving video prompts to assets/video-prompts.md..."
+        mkdir -p assets
+        printf '%s\n' "$STEP9_OUTPUT" > "assets/video-prompts.md"
+        echo "✓ Video prompts saved to assets/"
+        save_artifact "9" "video-marketing-prompts" "$STEP9_OUTPUT"
+        echo "✓ Step 9 complete"
+    else
+        echo "🛑 Step 9 failed validation - artifacts NOT saved"
+        echo "   Re-run the pipeline to regenerate step 9"
+        exit 1
+    fi
     echo ""
 else
     echo "⏭️  Step 9: Loading from artifacts..."
@@ -826,7 +948,7 @@ else
     if [ ! -f "assets/video-prompts.md" ]; then
         echo "💾 Creating assets/video-prompts.md from artifacts..."
         mkdir -p assets
-        echo "$STEP9_OUTPUT" > "assets/video-prompts.md"
+        printf '%s\n' "$STEP9_OUTPUT" > "assets/video-prompts.md"
     fi
 
     echo "✓ Step 9 loaded"
@@ -847,7 +969,7 @@ if should_run_step 10; then
     VIDEO_PROMPTS=$(cat "assets/video-prompts.md")
     RESUME_CONTEXT=$(build_resume_context 10)
 
-    STEP10_OUTPUT=$(claude -p --permission-mode bypassPermissions --continue --model claude-opus-4-5-20251101 "${RESUME_CONTEXT}Now implement the marketing video in the video/ directory using these video prompts as your guide:
+    STEP10_PROMPT="Now implement the marketing video in the video/ directory using these video prompts as your guide:
 
 ════════════════════════════════════════════════════════════════
 Video Marketing Prompts:
@@ -867,7 +989,9 @@ IMPORTANT:
 - Follow the brand guidelines we created
 - Create high-quality animations and transitions
 
-Start by reading the existing video project structure, then implement each scene of the marketing video.")
+Start by reading the existing video project structure, then implement each scene of the marketing video."
+
+    STEP10_OUTPUT=$(run_claude "$RESUME_CONTEXT" "$STEP10_PROMPT")
 
     log_tokens "10" "build-video" "$STEP10_OUTPUT"
     save_artifact "10" "build-video" "$STEP10_OUTPUT"
@@ -896,57 +1020,19 @@ fi
 # Save final output
 echo "💾 Saving complete brand development to assets/brand-output.md..."
 mkdir -p assets
-cat > assets/brand-output.md <<EOF
-# Complete Brand Development Output
-
-## Step 1: Target Profile
-${STEP1_OUTPUT}
-
----
-
-## Step 2: Product Features
-${STEP2_OUTPUT}
-
----
-
-## Step 3: Features to Benefits
-${STEP3_OUTPUT}
-
----
-
-## Step 4: Winning Zone
-${STEP4_OUTPUT}
-
----
-
-## Step 5: Brand Persona
-${STEP5_OUTPUT}
-
----
-
-## Step 6: Brand Guidelines
-${STEP6_OUTPUT}
-
----
-
-## Step 7: Website Design Prompt
-${STEP7_OUTPUT}
-
----
-
-## Step 8: Build Site
-${STEP8_OUTPUT}
-
----
-
-## Step 9: Video Marketing Prompts
-${STEP9_OUTPUT}
-
----
-
-## Step 10: Build Video
-${STEP10_OUTPUT}
-EOF
+{
+    printf '%s\n' "# Complete Brand Development Output"
+    printf '\n## Step 1: Target Profile\n%s\n\n---\n' "$STEP1_OUTPUT"
+    printf '\n## Step 2: Product Features\n%s\n\n---\n' "$STEP2_OUTPUT"
+    printf '\n## Step 3: Features to Benefits\n%s\n\n---\n' "$STEP3_OUTPUT"
+    printf '\n## Step 4: Winning Zone\n%s\n\n---\n' "$STEP4_OUTPUT"
+    printf '\n## Step 5: Brand Persona\n%s\n\n---\n' "$STEP5_OUTPUT"
+    printf '\n## Step 6: Brand Guidelines\n%s\n\n---\n' "$STEP6_OUTPUT"
+    printf '\n## Step 7: Website Design Prompt\n%s\n\n---\n' "$STEP7_OUTPUT"
+    printf '\n## Step 8: Build Site\n%s\n\n---\n' "$STEP8_OUTPUT"
+    printf '\n## Step 9: Video Marketing Prompts\n%s\n\n---\n' "$STEP9_OUTPUT"
+    printf '\n## Step 10: Build Video\n%s\n' "$STEP10_OUTPUT"
+} > assets/brand-output.md
 
 echo "✅ Brand development pipeline complete!"
 echo ""
